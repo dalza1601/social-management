@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas del ENTORNO LOCAL.
+    - ComposeConfigurationTests: validación estática de docker-compose.yml, .env.example y scripts
+      (se ejecutan siempre, no necesitan Docker).
+    - *LiveTests: comprueban los contenedores en ejecución. Se OMITEN salvo que se active:
+        SM_ENVIRONMENT_TESTS=true   -> SQL Server, RabbitMQ, APIs, Gateway y frontend
+        SM_LOCALSTACK_TESTS=true    -> recursos S3/SQS en LocalStack
+        SM_OLLAMA_TESTS=true        -> servidor Ollama
+      scripts/check.ps1 -RunTests las activa automáticamente.
+  -->
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="AWSSDK.SQS" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pruebas UNITARIAS del dominio de Beneficiarios: entidades, value objects e invariantes. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Domain\SocialManagement.Beneficiarios.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

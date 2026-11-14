@@ -1,0 +1,26 @@
+# Peticiones de ejemplo para Visual Studio / VS Code (extensión REST Client) / Rider.
+# Ejecuta la API con "dotnet run" (puerto 8081) o levanta el entorno con scripts\start.ps1.
+
+@api = http://localhost:8081
+@gateway = http://localhost:8080
+
+### Sesión 01 · Estado de demostración (directo a la API)
+GET {{api}}/api/demo/status
+Accept: application/json
+
+### Sesión 01 · Estado de demostración a través del Gateway
+# El Gateway elimina el prefijo /api/beneficiarios antes de reenviar.
+GET {{gateway}}/api/beneficiarios/api/demo/status
+Accept: application/json
+
+### Versión del servicio
+GET {{api}}/version
+
+### Disponibilidad básica y de dependencias
+GET {{api}}/health
+
+###
+GET {{api}}/health/ready
+
+### Documento OpenAPI (solo en Development)
+GET {{api}}/openapi/v1.json

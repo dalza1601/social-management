@@ -1,0 +1,33 @@
+# ---------- Secretos y configuración local ----------
+.env
+*.local.json
+appsettings.*.local.json
+
+# ---------- .NET ----------
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx
+coverage*/
+artifacts/
+
+# ---------- Node / Angular ----------
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+
+# ---------- IDE / SO ----------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+.DS_Store
+
+# ---------- Datos locales de contenedores ----------
+infra/**/volume/
+*.log

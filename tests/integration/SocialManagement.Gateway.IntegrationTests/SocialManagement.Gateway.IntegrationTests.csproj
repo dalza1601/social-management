@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de INTEGRACIÓN del Gateway: el Gateway corre en memoria y reenvía las peticiones
+    a un microservicio "falso" levantado con Kestrel en un puerto aleatorio.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\gateway\SocialManagement.Gateway\SocialManagement.Gateway.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

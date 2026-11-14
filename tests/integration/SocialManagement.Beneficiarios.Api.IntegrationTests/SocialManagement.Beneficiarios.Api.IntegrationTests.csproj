@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de INTEGRACIÓN en memoria (WebApplicationFactory): levantan la API completa
+    sin Docker, SQL Server ni RabbitMQ. Verifican arranque, DI, endpoints técnicos y errores.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Api\SocialManagement.Beneficiarios.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+</Project>

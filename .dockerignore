@@ -1,0 +1,23 @@
+# El contexto de construcción es la raíz del repositorio: excluir todo lo que no se compila.
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+**/TestResults/
+**/.vs/
+**/.vscode/
+**/*.user
+
+.git/
+.github/
+.env
+docs/
+scripts/
+tests/
+infra/localstack/
+infra/sqlserver/
+infra/rabbitmq/
+infra/docker/*.yml
+*.md

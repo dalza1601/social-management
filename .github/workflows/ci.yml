@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      docs_base_url:
+        description: "URL base del Gateway desplegado para verificar Swagger/OpenAPI (p. ej. https://api.midominio.com). Vacío: no se verifica."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------------
+  # Backend: compilación (advertencias = errores) y pruebas unitarias,
+  # de integración en memoria y validación estática de la infraestructura.
+  # -------------------------------------------------------------------
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar
+        run: dotnet restore SocialManagement.slnx
+
+      - name: Compilar
+        run: dotnet build SocialManagement.slnx --no-restore --configuration Release
+
+      - name: Probar
+        run: dotnet test --solution SocialManagement.slnx --no-build --configuration Release
+
+      # Publica cada API (como el Dockerfile), la ejecuta en Staging y comprueba Swagger UI, sus
+      # recursos estáticos y el documento OpenAPI; después lo valida con Redocly CLI.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Documentación OpenAPI y Swagger UI (aplicaciones publicadas)
+        run: bash scripts/ci/verify-api-docs.sh published artifacts/openapi
+
+      - name: Publicar los documentos OpenAPI como artefacto
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openapi-documents
+          path: artifacts/openapi/
+          if-no-files-found: warn
+
+  # -------------------------------------------------------------------
+  # Frontend: compilación de producción y pruebas unitarias (Vitest).
+  # -------------------------------------------------------------------
+  frontend:
+    name: Frontend (Angular)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npx ng test --watch=false
+
+  # -------------------------------------------------------------------
+  # Entorno Docker: construye las imágenes, levanta los servicios
+  # obligatorios y ejecuta las pruebas de entorno contra ellos.
+  # (LocalStack y Ollama no se levantan en CI.)
+  # -------------------------------------------------------------------
+  environment:
+    name: Entorno Docker Compose
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    env:
+      COMPOSE: docker compose -f infra/docker/docker-compose.yml --env-file .env
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Preparar .env de CI (valores de ejemplo)
+        run: cp .env.example .env
+
+      - name: Validar docker-compose.yml
+        run: $COMPOSE config --quiet
+
+      - name: Construir e iniciar los servicios obligatorios
+        run: $COMPOSE up --detach --build
+
+      - name: Esperar a que el frontend (último eslabón) esté sano
+        run: |
+          for i in $(seq 1 60); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$($COMPOSE ps -q frontend)" 2>/dev/null || echo "pending")
+            echo "frontend: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 10
+          done
+          exit 1
+
+      - name: Pruebas de entorno
+        env:
+          SM_ENVIRONMENT_TESTS: "true"
+        run: dotnet test --project tests/environment/SocialManagement.LocalEnvironment.Tests
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Swagger y OpenAPI a través del Gateway (prefijos y URL pública)
+        run: bash scripts/ci/verify-api-docs.sh remote http://localhost:8080 artifacts/openapi-gateway
+
+      - name: Estado y logs (si algo falla)
+        if: failure()
+        run: |
+          $COMPOSE ps -a
+          $COMPOSE logs --no-color --tail 200
+
+      - name: Detener
+        if: always()
+        run: $COMPOSE down --volumes --remove-orphans
+
+  # -------------------------------------------------------------------
+  # Ambiente desplegado (manual): verifica Swagger UI y OpenAPI a través
+  # del Gateway de un ambiente AUTORIZADO. Ejecución: Actions → CI →
+  # Run workflow → docs_base_url. Si la documentación está protegida,
+  # define los secrets API_DOCS_USER y API_DOCS_PASSWORD en el repositorio.
+  # -------------------------------------------------------------------
+  deployed-docs:
+    name: Documentación en ambiente desplegado
+    if: github.event_name == 'workflow_dispatch' && inputs.docs_base_url != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Verificar Swagger UI y OpenAPI
+        env:
+          # La URL se pasa como variable de entorno (no interpolada en el script) para evitar inyección.
+          DOCS_BASE_URL: ${{ inputs.docs_base_url }}
+          API_DOCS_USER: ${{ secrets.API_DOCS_USER }}
+          API_DOCS_PASSWORD: ${{ secrets.API_DOCS_PASSWORD }}
+        run: bash scripts/ci/verify-api-docs.sh remote "$DOCS_BASE_URL" artifacts/openapi-deployed
+
+      - name: Publicar los documentos OpenAPI del ambiente
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openapi-documents-deployed
+          path: artifacts/openapi-deployed/
+          if-no-files-found: warn

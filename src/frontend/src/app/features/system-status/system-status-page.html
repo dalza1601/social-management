@@ -1,0 +1,79 @@
+<section class="stack">
+  <header class="page-header">
+    <div>
+      <h1>Estado del sistema</h1>
+      <p class="muted">
+        Navegador → <code>{{ gatewayBaseUrl }}/…</code> → API Gateway → microservicios
+      </p>
+    </div>
+    <button type="button" class="button" (click)="refresh()" [disabled]="loading()">
+      {{ loading() ? 'Comprobando…' : 'Volver a comprobar' }}
+    </button>
+  </header>
+
+  @if (snapshot(); as status) {
+    <div class="card">
+      <h2>
+        API Gateway
+        <span class="badge" [class.badge--ok]="status.gateway.ok" [class.badge--error]="!status.gateway.ok">
+          {{ status.gateway.ok ? 'Disponible' : 'No disponible' }}
+        </span>
+      </h2>
+      @if (status.gateway.error) {
+        <p class="error-text">{{ status.gateway.error }}</p>
+      }
+    </div>
+
+    <div class="card">
+      <h2>Microservicios vistos desde el Gateway <small class="muted">(GET /health/ready)</small></h2>
+      @if (status.downstream.data; as report) {
+        <table class="table">
+          <thead>
+            <tr><th>Servicio</th><th>Estado</th><th>Detalle</th><th>ms</th></tr>
+          </thead>
+          <tbody>
+            @for (check of report.checks; track check.name) {
+              <tr>
+                <td>{{ check.name }}</td>
+                <td>
+                  <span class="badge" [class.badge--ok]="check.status === 'Healthy'" [class.badge--error]="check.status !== 'Healthy'">
+                    {{ check.status }}
+                  </span>
+                </td>
+                <td>{{ check.description }}</td>
+                <td>{{ check.durationMs | number: '1.0-1' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="error-text">{{ status.downstream.error }}</p>
+      }
+    </div>
+
+    <div class="card">
+      <h2>Enrutamiento por el Gateway <small class="muted">(GET /api/&#123;servicio&#125;/version)</small></h2>
+      <ul class="list">
+        @for (service of status.services; track service.name) {
+          <li>
+            <span class="badge" [class.badge--ok]="service.result.ok" [class.badge--error]="!service.result.ok">
+              {{ service.result.ok ? 'OK' : 'Error' }}
+            </span>
+            <code>{{ service.route }}</code>
+            @if (service.result.data; as version) {
+              <span class="muted">
+                → {{ version.service }} v{{ version.version }} · {{ version.environment }} · {{ version.framework }}
+              </span>
+            } @else {
+              <span class="error-text">→ {{ service.result.error }}</span>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+
+    <p class="muted">Última comprobación: {{ status.checkedAt | date: 'medium' }}</p>
+  } @else {
+    <p class="muted">Comprobando servicios…</p>
+  }
+</section>

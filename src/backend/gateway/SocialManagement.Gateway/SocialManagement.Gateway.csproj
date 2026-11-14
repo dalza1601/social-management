@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- API Gateway: punto de entrada único. Enruta hacia los microservicios con YARP. -->
+  <PropertyGroup>
+    <RootNamespace>SocialManagement.Gateway</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+  </ItemGroup>
+
+</Project>

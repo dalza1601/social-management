@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas UNITARIAS de los casos de uso de Beneficiarios.
+    El repositorio es un doble de prueba en memoria y el reloj es FakeTimeProvider:
+    no se necesita base de datos ni servidor.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Application\SocialManagement.Beneficiarios.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+</Project>

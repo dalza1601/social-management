@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SocialManagement.Solicitudes.Api/SocialManagement.Solicitudes.Api.csproj" />
+  <Project Path="SocialManagement.Solicitudes.Application/SocialManagement.Solicitudes.Application.csproj" />
+  <Project Path="SocialManagement.Solicitudes.Domain/SocialManagement.Solicitudes.Domain.csproj" />
+  <Project Path="SocialManagement.Solicitudes.Infrastructure/SocialManagement.Solicitudes.Infrastructure.csproj" />
+</Solution>

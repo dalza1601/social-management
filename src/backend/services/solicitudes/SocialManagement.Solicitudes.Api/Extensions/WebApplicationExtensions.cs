@@ -1,0 +1,39 @@
+using Microsoft.Extensions.Options;
+using SocialManagement.Solicitudes.Api.Configuration;
+using SocialManagement.Solicitudes.Infrastructure.DependencyInjection;
+
+namespace SocialManagement.Solicitudes.Api.Extensions;
+
+/// <summary>Configuración del pipeline HTTP y de los endpoints técnicos.</summary>
+public static class WebApplicationExtensions
+{
+    public static WebApplication UseApiPipeline(this WebApplication app)
+    {
+        // Primero: interpreta X-Forwarded-* de proxies de confianza (esquema, host y prefijo públicos).
+        app.UseTrustedForwardedHeaders();
+
+        app.UseExceptionHandler();
+        app.UseStatusCodePages();
+
+        // /openapi/v1.json y /swagger, según ApiDocumentation:Enabled (por ambiente).
+        app.UseApiDocumentation();
+
+        app.MapControllers();
+
+        // /health       -> disponibilidad básica: el proceso responde (no consulta dependencias).
+        // /health/ready -> dependencias: SQL Server y RabbitMQ.
+        app.MapHealthChecks("/health", HealthCheckResponseWriter.CreateOptions(ApiServiceCollectionExtensions.LivenessTag));
+        app.MapHealthChecks("/health/ready", HealthCheckResponseWriter.CreateOptions(InfrastructureServiceCollectionExtensions.ReadinessTag));
+
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            var serviceInfo = app.Services.GetRequiredService<IOptions<ServiceInfoOptions>>().Value;
+            app.Logger.LogInformation(
+                "Servicio {ServiceName} iniciado en el entorno {Environment}",
+                serviceInfo.Name,
+                app.Environment.EnvironmentName);
+        });
+
+        return app;
+    }
+}

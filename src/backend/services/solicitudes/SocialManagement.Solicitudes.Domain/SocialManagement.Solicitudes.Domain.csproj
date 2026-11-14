@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Capa de DOMINIO.
+    Regla: no referencia ningún otro proyecto ni paquete (ni EF Core, ni ASP.NET Core, ni SDKs externos).
+  -->
+  <PropertyGroup>
+    <RootNamespace>SocialManagement.Solicitudes.Domain</RootNamespace>
+  </PropertyGroup>
+
+</Project>

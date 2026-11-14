@@ -1,0 +1,13 @@
+# Reglas de validación de los documentos OpenAPI (Redocly CLI).
+# Se usa el conjunto "recommended" con ajustes justificados para el estado actual del proyecto.
+extends:
+  - recommended
+
+rules:
+  # Aún no hay autenticación (llegará en el módulo de seguridad): los endpoints actuales son públicos
+  # a propósito. Al incorporar JWT, cambiar a "error" para exigir seguridad en cada operación.
+  security-defined: off
+  # El proyecto académico no publica una licencia en el documento.
+  info-license: off
+  # Los endpoints técnicos (/version, /api/demo/status) no tienen respuestas 4xx.
+  operation-4xx-response: warn

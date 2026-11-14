@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas UNITARIAS de arquitectura. Verifican las reglas de dependencia de Clean Architecture
+    a dos niveles: referencias declaradas en los .csproj y dependencias reales de los ensamblados.
+    Las APIs se validan solo por .csproj (referenciar dos proyectos web desde un test es innecesario).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Domain\SocialManagement.Beneficiarios.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Application\SocialManagement.Beneficiarios.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Infrastructure\SocialManagement.Beneficiarios.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\services\solicitudes\SocialManagement.Solicitudes.Domain\SocialManagement.Solicitudes.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\services\solicitudes\SocialManagement.Solicitudes.Application\SocialManagement.Solicitudes.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\backend\services\solicitudes\SocialManagement.Solicitudes.Infrastructure\SocialManagement.Solicitudes.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

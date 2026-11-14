@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SocialManagement.Beneficiarios.Api/SocialManagement.Beneficiarios.Api.csproj" />
+  <Project Path="SocialManagement.Beneficiarios.Application/SocialManagement.Beneficiarios.Application.csproj" />
+  <Project Path="SocialManagement.Beneficiarios.Domain/SocialManagement.Beneficiarios.Domain.csproj" />
+  <Project Path="SocialManagement.Beneficiarios.Infrastructure/SocialManagement.Beneficiarios.Infrastructure.csproj" />
+</Solution>

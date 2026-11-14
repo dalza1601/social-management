@@ -1,0 +1,35 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/" />
+  <Folder Name="/src/backend/gateway/">
+    <Project Path="src/backend/gateway/SocialManagement.Gateway/SocialManagement.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/backend/services/" />
+  <Folder Name="/src/backend/services/beneficiarios/">
+    <Project Path="src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Api/SocialManagement.Beneficiarios.Api.csproj" />
+    <Project Path="src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Application/SocialManagement.Beneficiarios.Application.csproj" />
+    <Project Path="src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Domain/SocialManagement.Beneficiarios.Domain.csproj" />
+    <Project Path="src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Infrastructure/SocialManagement.Beneficiarios.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/backend/services/solicitudes/">
+    <Project Path="src/backend/services/solicitudes/SocialManagement.Solicitudes.Api/SocialManagement.Solicitudes.Api.csproj" />
+    <Project Path="src/backend/services/solicitudes/SocialManagement.Solicitudes.Application/SocialManagement.Solicitudes.Application.csproj" />
+    <Project Path="src/backend/services/solicitudes/SocialManagement.Solicitudes.Domain/SocialManagement.Solicitudes.Domain.csproj" />
+    <Project Path="src/backend/services/solicitudes/SocialManagement.Solicitudes.Infrastructure/SocialManagement.Solicitudes.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/environment/">
+    <Project Path="tests/environment/SocialManagement.LocalEnvironment.Tests/SocialManagement.LocalEnvironment.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/SocialManagement.Beneficiarios.Api.IntegrationTests/SocialManagement.Beneficiarios.Api.IntegrationTests.csproj" />
+    <Project Path="tests/integration/SocialManagement.Gateway.IntegrationTests/SocialManagement.Gateway.IntegrationTests.csproj" />
+    <Project Path="tests/integration/SocialManagement.Solicitudes.Api.IntegrationTests/SocialManagement.Solicitudes.Api.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/SocialManagement.Architecture.Tests/SocialManagement.Architecture.Tests.csproj" />
+    <Project Path="tests/unit/SocialManagement.Beneficiarios.Api.UnitTests/SocialManagement.Beneficiarios.Api.UnitTests.csproj" />
+    <Project Path="tests/unit/SocialManagement.Beneficiarios.Application.UnitTests/SocialManagement.Beneficiarios.Application.UnitTests.csproj" />
+    <Project Path="tests/unit/SocialManagement.Beneficiarios.Domain.UnitTests/SocialManagement.Beneficiarios.Domain.UnitTests.csproj" />
+  </Folder>
+</Solution>

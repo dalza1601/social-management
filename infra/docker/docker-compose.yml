@@ -1,0 +1,302 @@
+# =====================================================================
+#  SocialManagement - Entorno local con Docker Compose
+# ---------------------------------------------------------------------
+#  Uso recomendado (desde la raíz del repositorio):
+#    .\scripts\start.ps1          -> servicios obligatorios
+#    .\scripts\start-full.ps1     -> + perfiles opcionales (localstack, ollama)
+#  Uso directo:
+#    docker compose -f infra/docker/docker-compose.yml --env-file .env up -d --build
+#    docker compose -f infra/docker/docker-compose.yml --env-file .env --profile localstack --profile ollama up -d
+#
+#  Reglas:
+#  - Dentro de la red, los servicios se llaman por su NOMBRE (sqlserver, rabbitmq, gateway...).
+#    "localhost" dentro de un contenedor es el propio contenedor, nunca otro servicio.
+#  - Los puertos se publican solo en 127.0.0.1 y se configuran en .env.
+# =====================================================================
+name: social-management
+
+x-dotnet-environment: &dotnet-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+  # Logs estructurados en JSON (un objeto por línea) dentro de los contenedores.
+  Logging__Console__FormatterName: json
+
+x-dotnet-service-environment: &dotnet-service-environment
+  <<: *dotnet-environment
+  RabbitMq__Host: rabbitmq
+  RabbitMq__Port: "5672"
+  RabbitMq__VirtualHost: ${RABBITMQ_VHOST:-social-management}
+  RabbitMq__UserName: ${RABBITMQ_USER:-}
+  RabbitMq__Password: ${RABBITMQ_PASSWORD:-}
+  Aws__Region: ${AWS_REGION:-us-east-1}
+  Aws__UseLocalStack: ${AWS_USE_LOCALSTACK:-true}
+  Aws__ServiceUrl: http://localstack:4566
+  Aws__AccessKey: ${AWS_ACCESS_KEY_ID:-test}
+  Aws__SecretKey: ${AWS_SECRET_ACCESS_KEY:-test}
+  Aws__DocumentsBucketName: ${AWS_S3_DOCUMENTS_BUCKET:-social-management-documents-dev}
+  Aws__NotificationsQueueName: ${AWS_SQS_NOTIFICATIONS_QUEUE:-social-management-notifications-dev}
+  Ollama__Enabled: ${OLLAMA_ENABLED:-false}
+  Ollama__Endpoint: http://ollama:11434
+  Ollama__ModelId: ${OLLAMA_MODEL:-}
+  # Swagger UI (/swagger) y OpenAPI (/openapi/v1.json). Si se definen usuario y clave, se exige HTTP Basic.
+  ApiDocumentation__Enabled: ${API_DOCS_ENABLED:-true}
+  ApiDocumentation__Access__UserName: ${API_DOCS_USER:-}
+  ApiDocumentation__Access__Password: ${API_DOCS_PASSWORD:-}
+  # Proxies de confianza para X-Forwarded-* (el Gateway está en la red de Compose, cuya subred
+  # asigna Docker dentro de estos rangos privados). En producción usa la IP/red exacta del Gateway.
+  ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12
+  ForwardedHeaders__KnownNetworks__1: 192.168.0.0/16
+  ForwardedHeaders__KnownNetworks__2: 10.0.0.0/8
+
+x-dotnet-hardening: &dotnet-hardening
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  networks:
+    - social-management
+
+x-dotnet-healthcheck: &dotnet-healthcheck
+  test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health > /dev/null || exit 1"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 20s
+
+services:
+  # -------------------------------------------------------------------
+  # Persistencia
+  # -------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    hostname: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD en .env (ejecuta scripts/setup.ps1)}"
+    ports:
+      - "127.0.0.1:${SQLSERVER_PORT:-14333}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - social-management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # Tarea de una sola ejecución: crea las bases de datos (idempotente) y termina.
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    entrypoint: ["/bin/bash", "/scripts/init-databases.sh"]
+    environment:
+      SQLSERVER_HOST: sqlserver
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Define MSSQL_SA_PASSWORD en .env (ejecuta scripts/setup.ps1)}"
+    volumes:
+      - ../sqlserver:/scripts:ro
+    networks:
+      - social-management
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+
+  # -------------------------------------------------------------------
+  # Mensajería
+  # -------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:4.3.7-management-alpine
+    # El nombre de host fijo evita que RabbitMQ cree un nodo nuevo (y pierda datos) en cada recreación.
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:?Define RABBITMQ_USER en .env}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD en .env}"
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-social-management}
+    ports:
+      - "127.0.0.1:${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ../rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/20-social-management.conf:ro
+    networks:
+      - social-management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+
+  # -------------------------------------------------------------------
+  # Microservicios
+  # -------------------------------------------------------------------
+  beneficiarios-api:
+    <<: *dotnet-hardening
+    build:
+      context: ../..
+      dockerfile: infra/docker/dotnet-api.Dockerfile
+      args:
+        PROJECT_DIR: src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Api
+        PROJECT_NAME: SocialManagement.Beneficiarios.Api
+    image: social-management/beneficiarios-api:dev
+    environment:
+      <<: *dotnet-service-environment
+      ConnectionStrings__BeneficiariosDb: "Server=sqlserver,1433;Database=SocialManagement_Beneficiarios;User Id=sa;Password=${MSSQL_SA_PASSWORD:-};TrustServerCertificate=True;Connect Timeout=5"
+      RabbitMq__ClientProvidedName: beneficiarios-api
+    ports:
+      - "127.0.0.1:${BENEFICIARIOS_API_PORT:-8081}:8080"
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    healthcheck: *dotnet-healthcheck
+
+  solicitudes-api:
+    <<: *dotnet-hardening
+    build:
+      context: ../..
+      dockerfile: infra/docker/dotnet-api.Dockerfile
+      args:
+        PROJECT_DIR: src/backend/services/solicitudes/SocialManagement.Solicitudes.Api
+        PROJECT_NAME: SocialManagement.Solicitudes.Api
+    image: social-management/solicitudes-api:dev
+    environment:
+      <<: *dotnet-service-environment
+      ConnectionStrings__SolicitudesDb: "Server=sqlserver,1433;Database=SocialManagement_Solicitudes;User Id=sa;Password=${MSSQL_SA_PASSWORD:-};TrustServerCertificate=True;Connect Timeout=5"
+      RabbitMq__ClientProvidedName: solicitudes-api
+    ports:
+      - "127.0.0.1:${SOLICITUDES_API_PORT:-8082}:8080"
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    healthcheck: *dotnet-healthcheck
+
+  # -------------------------------------------------------------------
+  # API Gateway (YARP)
+  # -------------------------------------------------------------------
+  gateway:
+    <<: *dotnet-hardening
+    build:
+      context: ../..
+      dockerfile: infra/docker/dotnet-api.Dockerfile
+      args:
+        PROJECT_DIR: src/backend/gateway/SocialManagement.Gateway
+        PROJECT_NAME: SocialManagement.Gateway
+    image: social-management/gateway:dev
+    environment:
+      <<: *dotnet-environment
+      # Destinos internos: DNS de Docker Compose y puerto INTERNO (8080) de cada contenedor.
+      ReverseProxy__Clusters__beneficiarios__Destinations__default__Address: http://beneficiarios-api:8080/
+      ReverseProxy__Clusters__solicitudes__Destinations__default__Address: http://solicitudes-api:8080/
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      beneficiarios-api:
+        condition: service_healthy
+      solicitudes-api:
+        condition: service_healthy
+    healthcheck: *dotnet-healthcheck
+
+  # -------------------------------------------------------------------
+  # Frontend Angular (nginx sin privilegios)
+  # -------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../..
+      dockerfile: infra/docker/frontend.Dockerfile
+    image: social-management/frontend:dev
+    environment:
+      GATEWAY_UPSTREAM: http://gateway:8080
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-4200}:8080"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - social-management
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------------------------------------------------
+  # OPCIONAL - perfil "localstack": emulación local de AWS (S3 y SQS)
+  # Requiere LOCALSTACK_AUTH_TOKEN en .env (plan Hobby gratuito para uso no comercial).
+  # -------------------------------------------------------------------
+  localstack:
+    image: localstack/localstack:2026.10.6
+    profiles: ["localstack"]
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}
+      SERVICES: s3,sqs
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      SM_S3_BUCKET: ${AWS_S3_DOCUMENTS_BUCKET:-social-management-documents-dev}
+      SM_SQS_QUEUE: ${AWS_SQS_NOTIFICATIONS_QUEUE:-social-management-notifications-dev}
+    ports:
+      - "127.0.0.1:${LOCALSTACK_PORT:-4566}:4566"
+    volumes:
+      - ../localstack/init/ready.d:/etc/localstack/init/ready.d:ro
+      - localstack-data:/var/lib/localstack
+    networks:
+      - social-management
+    # Sin reinicio automático: si el token no es válido, el contenedor se detiene y no entra en bucle.
+    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/init/ready | grep -q '\"completed\": *true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # -------------------------------------------------------------------
+  # OPCIONAL - perfil "ollama": servidor local de modelos de IA
+  # No se descarga ningún modelo automáticamente (ver docs/infrastructure.md).
+  # -------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:0.40.16
+    profiles: ["ollama"]
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - social-management
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  social-management:
+    name: social-management-net
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+    name: social-management-sqlserver-data
+  rabbitmq-data:
+    name: social-management-rabbitmq-data
+  localstack-data:
+    name: social-management-localstack-data
+  ollama-data:
+    name: social-management-ollama-data

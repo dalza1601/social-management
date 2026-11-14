@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Capa de INFRAESTRUCTURA.
+    Regla: depende de Application y Domain. Aquí viven EF Core, RabbitMQ y los SDKs externos.
+  -->
+  <PropertyGroup>
+    <RootNamespace>SocialManagement.Beneficiarios.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SocialManagement.Beneficiarios.Application\SocialManagement.Beneficiarios.Application.csproj" />
+    <ProjectReference Include="..\SocialManagement.Beneficiarios.Domain\SocialManagement.Beneficiarios.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="AWSSDK.SQS" />
+  </ItemGroup>
+
+</Project>

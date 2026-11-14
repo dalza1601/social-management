@@ -1,0 +1,30 @@
+<section class="stack">
+  <header>
+    <h1>Sistema de Gestión de Beneficiarios y Solicitudes Sociales</h1>
+    <p class="muted">
+      Base técnica (Fase 0) del proyecto del curso de Arquitectura de Microservicios con .NET 10,
+      Angular, IA Generativa y DevOps. Las funcionalidades de negocio se construirán en los
+      próximos módulos.
+    </p>
+  </header>
+
+  <div class="card">
+    <h2>Componentes de la plataforma</h2>
+    <ul class="list">
+      @for (component of components; track component.name) {
+        <li>
+          <strong>{{ component.name }}</strong>
+          <span class="muted"> — {{ component.detail }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Comprobar la conectividad</h2>
+    <p>
+      La pantalla técnica consulta el API Gateway y, a través de él, a cada microservicio.
+    </p>
+    <a routerLink="/estado" class="button">Ver estado del sistema</a>
+  </div>
+</section>

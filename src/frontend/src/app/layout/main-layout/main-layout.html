@@ -1,0 +1,34 @@
+<header class="header">
+  <div class="container header__content">
+    <a routerLink="/" class="brand">{{ config.appName }}</a>
+    <nav aria-label="Navegación principal">
+      <ul class="nav">
+        <li>
+          <a routerLink="/" routerLinkActive="nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="nav__link">Inicio</a>
+        </li>
+        <li>
+          <a routerLink="/estado" routerLinkActive="nav__link--active" class="nav__link">Estado del sistema</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+@if (notifications.message(); as message) {
+  <div class="container">
+    <div class="alert" role="alert">
+      <span>{{ message }}</span>
+      <button type="button" class="alert__close" (click)="notifications.dismiss()" aria-label="Cerrar aviso">×</button>
+    </div>
+  </div>
+}
+
+<main class="container main">
+  <router-outlet />
+</main>
+
+<footer class="footer">
+  <div class="container">
+    SocialManagement · Fase 0 (Foundation) · {{ year }}
+  </div>
+</footer>

@@ -1,0 +1,21 @@
+<Project>
+  <!-- Hereda la configuración común del repositorio y agrega lo propio de los proyectos de prueba. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!--
+      xUnit v3 sobre Microsoft.Testing.Platform (MTP): los proyectos de prueba son ejecutables.
+      global.json activa MTP para "dotnet test" (requisito del SDK de .NET 10).
+    -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
