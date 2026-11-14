@@ -4,7 +4,7 @@ Implementa los detalles técnicos. Depende de `Application` y `Domain`.
 
 | Carpeta              | Contenido                                                                                  |
 |----------------------|--------------------------------------------------------------------------------------------|
-| `Persistence`        | `BeneficiariosDbContext` (sin tablas en Fase 0). Futuro: `EntityConfigurations/`, `Migrations/`. |
+| `Persistence`        | `BeneficiariosDbContext` (`DbSet<Beneficiario>`, implementa `IUnitOfWork`). `Configurations/`: mapeo Fluent API por entidad (`BeneficiarioConfiguration`: PK, columnas, índice único, value object; `ConfigureAuditFields()` para la auditoría). `Interceptors/`: `AuditableEntityInterceptor` completa la auditoría en cada `SaveChanges`. Futuro: `Migrations/`. |
 | `Configurations`     | Opciones tipadas y validadas: `SqlServerOptions`, `RabbitMqOptions`, `AwsOptions`, `OllamaOptions`. |
 | `Repositories`       | Implementaciones de los repositorios definidos en `Application/Interfaces`.                |
 | `ExternalServices`   | Clientes de servicios externos. Hoy: `Aws/AwsClientFactory` (S3 y SQS sobre LocalStack).   |

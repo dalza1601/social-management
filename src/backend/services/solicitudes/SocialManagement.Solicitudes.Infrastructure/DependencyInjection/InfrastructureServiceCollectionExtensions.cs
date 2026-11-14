@@ -3,11 +3,14 @@ using Amazon.SQS;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using SocialManagement.Solicitudes.Application.Interfaces;
 using SocialManagement.Solicitudes.Infrastructure.Configurations;
 using SocialManagement.Solicitudes.Infrastructure.ExternalServices.Aws;
 using SocialManagement.Solicitudes.Infrastructure.Messaging;
 using SocialManagement.Solicitudes.Infrastructure.Persistence;
+using SocialManagement.Solicitudes.Infrastructure.Persistence.Interceptors;
 
 namespace SocialManagement.Solicitudes.Infrastructure.DependencyInjection;
 
@@ -44,6 +47,10 @@ public static class InfrastructureServiceCollectionExtensions
                 ConfigurationMessages.Required(SqlServerOptions.ConfigurationKey))
             .ValidateOnStart();
 
+        // Auditoría automática (CreatedAtUtc, UpdatedAtUtc...) de las entidades que heredan de AuditableEntity.
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<AuditableEntityInterceptor>();
+
         services.AddDbContext<SolicitudesDbContext>((serviceProvider, options) =>
         {
             var sqlServer = serviceProvider.GetRequiredService<IOptions<SqlServerOptions>>().Value;
@@ -52,7 +59,11 @@ public static class InfrastructureServiceCollectionExtensions
                 sql.EnableRetryOnFailure(maxRetryCount: 3);
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", SolicitudesDbContext.DefaultSchema);
             });
+            options.AddInterceptors(serviceProvider.GetRequiredService<AuditableEntityInterceptor>());
         });
+
+        // Unit of Work: la MISMA instancia del DbContext (scoped) que usan los repositorios en la petición.
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<SolicitudesDbContext>());
 
         services.AddHealthChecks()
             .AddDbContextCheck<SolicitudesDbContext>("sqlserver", tags: [ReadinessTag]);

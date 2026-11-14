@@ -13,6 +13,8 @@ Los valores variables (puertos, credenciales, nombres de recursos) se leen de `.
 | Microsoft.Data.SqlClient | 6.1.7 | La misma que usa EF Core 10.0.15 |
 | YARP (`Yarp.ReverseProxy`) | 2.3.0 | |
 | Swagger UI (`Swashbuckle.AspNetCore.SwaggerUI`) | 11.0.1 | Solo la interfaz; el documento lo genera `Microsoft.AspNetCore.OpenApi` ([detalle](api-documentation.md)) |
+| Versionado de APIs (`Asp.Versioning.OpenApi`) | 10.2.3 | Versión en la URL (`/api/v1/...`) y un documento OpenAPI por versión |
+| FluentValidation (+ `DependencyInjectionExtensions`) | 12.2.0 | Validación de comandos y consultas en Application |
 | RabbitMQ.Client | 7.2.2 | API asíncrona |
 | AWS SDK for .NET (`AWSSDK.S3` / `AWSSDK.SQS`) | 4.0.104.12 / 4.0.100.26 | |
 | xUnit v3 | 4.0.3 | Sobre Microsoft.Testing.Platform (`global.json` → `test.runner`) |
@@ -124,7 +126,10 @@ dotnet ef database update `
 ```
 
 Antes de la primera migración: agrega el `DbSet` al `DbContext`, crea la clase `IEntityTypeConfiguration<T>`
-en `Persistence/EntityConfigurations` y descomenta `ApplyConfigurationsFromAssembly` en el `DbContext`.
+en `Persistence/Configurations` (Fluent API: clave primaria, columnas, índices y relaciones). El `DbContext` las
+registra todas con `ApplyConfigurationsFromAssembly`. Ejemplo real: `BeneficiarioConfiguration` en Beneficiarios.
+Las entidades del dominio **no** llevan atributos de persistencia (`[Key]`, `[Required]`...): lo verifica una prueba
+de arquitectura.
 
 ## RabbitMQ
 

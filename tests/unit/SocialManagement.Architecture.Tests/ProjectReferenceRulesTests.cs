@@ -30,8 +30,20 @@ public sealed class ProjectReferenceRulesTests
 
         Assert.Equal([Name(service, "Domain")], project.ProjectReferences);
         Assert.All(project.PackageReferences, package =>
-            Assert.Equal("Microsoft.Extensions.DependencyInjection.Abstractions", package));
+            Assert.Contains(package, AllowedApplicationPackages));
     }
+
+    /// <summary>
+    /// Paquetes permitidos en Application: ninguno es infraestructura, HTTP ni persistencia.
+    /// - Abstracción de DI (solo interfaces).
+    /// - FluentValidation: validación de los datos de entrada de los casos de uso.
+    /// </summary>
+    private static readonly string[] AllowedApplicationPackages =
+    [
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
+        "FluentValidation",
+        "FluentValidation.DependencyInjectionExtensions",
+    ];
 
     [Theory]
     [MemberData(nameof(Services))]

@@ -1,5 +1,7 @@
+using FluentValidation;
 using Microsoft.Extensions.Time.Testing;
 using SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Validators;
 using SocialManagement.Beneficiarios.Domain.Enums;
 using SocialManagement.Beneficiarios.Domain.Exceptions;
 
@@ -11,10 +13,15 @@ public sealed class RegistrarBeneficiarioHandlerTests
     private static readonly DateTimeOffset Ahora = new(2026, 11, 13, 15, 30, 0, TimeSpan.Zero);
 
     private readonly FakeBeneficiarioRepository _repository = new();
+    private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly RegistrarBeneficiarioHandler _handler;
 
     public RegistrarBeneficiarioHandlerTests() =>
-        _handler = new RegistrarBeneficiarioHandler(_repository, new FakeTimeProvider(Ahora));
+        _handler = new RegistrarBeneficiarioHandler(
+            new RegistrarBeneficiarioCommandValidator(),
+            _repository,
+            _unitOfWork,
+            new FakeTimeProvider(Ahora));
 
     private static RegistrarBeneficiarioCommand ComandoValido(string dni = "12345678") =>
         new("Ana María", "Quispe Mamani", TipoDocumentoIdentidad.Dni, dni);
@@ -30,6 +37,14 @@ public sealed class RegistrarBeneficiarioHandlerTests
         Assert.Equal("Dni", resultado.TipoDocumento);
         Assert.Equal("12345678", resultado.NumeroDocumento);
         Assert.Equal("Activo", resultado.Estado);
+    }
+
+    [Fact]
+    public async Task Confirma_los_cambios_una_sola_vez_con_la_unidad_de_trabajo()
+    {
+        await _handler.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, _unitOfWork.SaveChangesCalls);
     }
 
     [Fact]
@@ -50,27 +65,24 @@ public sealed class RegistrarBeneficiarioHandlerTests
             () => _handler.HandleAsync(ComandoValido(" 12345678 "), TestContext.Current.CancellationToken));
 
         Assert.Single(_repository.Guardados);
+        Assert.Equal(1, _unitOfWork.SaveChangesCalls);   // solo el primer registro se confirmó
         Assert.Equal("Ya existe un beneficiario registrado con el documento Dni 12345678.", excepcion.Message);
     }
 
     [Fact]
-    public async Task Un_documento_invalido_no_llega_al_repositorio()
+    public async Task Datos_invalidos_se_rechazan_en_la_validacion_antes_de_crear_el_dominio()
     {
-        await Assert.ThrowsAsync<DocumentoIdentidadInvalidoException>(
-            () => _handler.HandleAsync(ComandoValido("123"), TestContext.Current.CancellationToken));
+        var comando = new RegistrarBeneficiarioCommand("Ana123", " ", TipoDocumentoIdentidad.Dni, "123");
 
-        Assert.Empty(_repository.Guardados);
-    }
-
-    [Fact]
-    public async Task Un_nombre_invalido_no_llega_al_repositorio()
-    {
-        var comando = ComandoValido() with { Nombres = "Ana123" };
-
-        await Assert.ThrowsAsync<BeneficiarioInvalidoException>(
+        var excepcion = await Assert.ThrowsAsync<ValidationException>(
             () => _handler.HandleAsync(comando, TestContext.Current.CancellationToken));
 
+        // FluentValidation informa TODOS los campos con error a la vez.
+        Assert.Equal(
+            ["Apellidos", "Nombres", "NumeroDocumento"],
+            excepcion.Errors.Select(e => e.PropertyName).Order());
         Assert.Empty(_repository.Guardados);
+        Assert.Equal(0, _unitOfWork.SaveChangesCalls);
     }
 
     [Fact]

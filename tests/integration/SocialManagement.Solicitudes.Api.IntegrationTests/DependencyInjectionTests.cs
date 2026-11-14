@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using SocialManagement.Solicitudes.Application.Interfaces;
 using SocialManagement.Solicitudes.Infrastructure.Configurations;
 using SocialManagement.Solicitudes.Infrastructure.Messaging;
 using SocialManagement.Solicitudes.Infrastructure.Persistence;
@@ -25,6 +26,18 @@ public sealed class DependencyInjectionTests(SolicitudesApiFactory factory) : IC
         var dbContext = scope.ServiceProvider.GetRequiredService<SolicitudesDbContext>();
 
         Assert.Equal("solicitudes", dbContext.Model.GetDefaultSchema());
+    }
+
+    [Fact]
+    public void El_Unit_of_Work_es_el_mismo_DbContext_de_la_peticion()
+    {
+        using var scope = factory.Services.CreateScope();
+
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<SolicitudesDbContext>();
+
+        // Misma instancia: lo que registran los repositorios se confirma con IUnitOfWork.SaveChangesAsync.
+        Assert.Same(dbContext, unitOfWork);
     }
 
     [Fact]

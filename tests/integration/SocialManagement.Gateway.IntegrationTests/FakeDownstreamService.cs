@@ -52,10 +52,3 @@ internal sealed class FakeDownstreamService : IAsyncDisposable
         await _app.DisposeAsync();
     }
 }
-
-internal sealed record FakeResponse(
-    string Service,
-    string Path,
-    string ForwardedPrefix = "",
-    string ForwardedHost = "",
-    string ForwardedProto = "");

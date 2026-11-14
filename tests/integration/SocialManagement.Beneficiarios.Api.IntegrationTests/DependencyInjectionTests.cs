@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using FluentValidation;
+using SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Infrastructure.Configurations;
 using SocialManagement.Beneficiarios.Infrastructure.Messaging;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
@@ -25,6 +29,27 @@ public sealed class DependencyInjectionTests(BeneficiariosApiFactory factory) : 
         var dbContext = scope.ServiceProvider.GetRequiredService<BeneficiariosDbContext>();
 
         Assert.Equal("beneficiarios", dbContext.Model.GetDefaultSchema());
+    }
+
+    [Fact]
+    public void El_Unit_of_Work_es_el_mismo_DbContext_de_la_peticion()
+    {
+        using var scope = factory.Services.CreateScope();
+
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BeneficiariosDbContext>();
+
+        // Misma instancia: lo que registran los repositorios se confirma con IUnitOfWork.SaveChangesAsync.
+        Assert.Same(dbContext, unitOfWork);
+    }
+
+    [Fact]
+    public void Registra_los_validadores_de_FluentValidation_de_Application()
+    {
+        using var scope = factory.Services.CreateScope();
+
+        Assert.NotNull(scope.ServiceProvider.GetService<IValidator<RegistrarBeneficiarioCommand>>());
+        Assert.NotNull(scope.ServiceProvider.GetService<IValidator<ConsultarBeneficiarioQuery>>());
     }
 
     [Fact]

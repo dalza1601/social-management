@@ -16,6 +16,9 @@ namespace SocialManagement.Beneficiarios.Domain.ValueObjects;
 /// </remarks>
 public sealed record DocumentoIdentidad
 {
+    /// <summary>Longitud máxima del número para cualquier tipo de documento.</summary>
+    public const int LongitudMaximaNumero = 12;
+
     private DocumentoIdentidad(TipoDocumentoIdentidad tipo, string numero)
     {
         Tipo = tipo;
@@ -35,32 +38,49 @@ public sealed record DocumentoIdentidad
             throw new DocumentoIdentidadInvalidoException($"El tipo de documento '{tipo}' no es válido.");
         }
 
-        var normalizado = (numero ?? string.Empty).Trim().ToUpperInvariant();
+        var normalizado = Normalizar(numero);
         if (normalizado.Length == 0)
         {
             throw new DocumentoIdentidadInvalidoException("El número de documento es obligatorio.");
         }
 
-        var (esValido, regla) = tipo switch
+        if (!EsValido(tipo, normalizado))
         {
-            TipoDocumentoIdentidad.Dni =>
-                (normalizado.Length == 8 && normalizado.All(char.IsAsciiDigit),
-                 "El DNI debe tener exactamente 8 dígitos."),
-            TipoDocumentoIdentidad.CarnetExtranjeria =>
-                (normalizado.Length is >= 9 and <= 12 && normalizado.All(char.IsAsciiLetterOrDigit),
-                 "El carné de extranjería debe tener entre 9 y 12 caracteres alfanuméricos."),
-            _ =>
-                (normalizado.Length is >= 6 and <= 12 && normalizado.All(char.IsAsciiLetterOrDigit),
-                 "El pasaporte debe tener entre 6 y 12 caracteres alfanuméricos."),
-        };
-
-        if (!esValido)
-        {
-            throw new DocumentoIdentidadInvalidoException(regla);
+            throw new DocumentoIdentidadInvalidoException(DescripcionDelFormato(tipo));
         }
 
         return new DocumentoIdentidad(tipo, normalizado);
     }
+
+    /// <summary>
+    /// ¿El número cumple el formato de su tipo? Regla única que usan <see cref="Crear"/> y los validadores
+    /// de entrada (FluentValidation en Application), para no duplicarla.
+    /// </summary>
+    public static bool EsValido(TipoDocumentoIdentidad tipo, string? numero)
+    {
+        var normalizado = Normalizar(numero);
+        return tipo switch
+        {
+            TipoDocumentoIdentidad.Dni =>
+                normalizado.Length == 8 && normalizado.All(char.IsAsciiDigit),
+            TipoDocumentoIdentidad.CarnetExtranjeria =>
+                normalizado.Length is >= 9 and <= LongitudMaximaNumero && normalizado.All(char.IsAsciiLetterOrDigit),
+            TipoDocumentoIdentidad.Pasaporte =>
+                normalizado.Length is >= 6 and <= LongitudMaximaNumero && normalizado.All(char.IsAsciiLetterOrDigit),
+            _ => false,
+        };
+    }
+
+    /// <summary>Mensaje que describe el formato esperado para el tipo de documento.</summary>
+    public static string DescripcionDelFormato(TipoDocumentoIdentidad tipo) => tipo switch
+    {
+        TipoDocumentoIdentidad.Dni => "El DNI debe tener exactamente 8 dígitos.",
+        TipoDocumentoIdentidad.CarnetExtranjeria => "El carné de extranjería debe tener entre 9 y 12 caracteres alfanuméricos.",
+        TipoDocumentoIdentidad.Pasaporte => "El pasaporte debe tener entre 6 y 12 caracteres alfanuméricos.",
+        _ => $"El tipo de documento '{tipo}' no es válido.",
+    };
+
+    private static string Normalizar(string? numero) => (numero ?? string.Empty).Trim().ToUpperInvariant();
 
     public override string ToString() => $"{Tipo} {Numero}";
 }

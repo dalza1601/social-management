@@ -31,5 +31,6 @@
     <Project Path="tests/unit/SocialManagement.Beneficiarios.Api.UnitTests/SocialManagement.Beneficiarios.Api.UnitTests.csproj" />
     <Project Path="tests/unit/SocialManagement.Beneficiarios.Application.UnitTests/SocialManagement.Beneficiarios.Application.UnitTests.csproj" />
     <Project Path="tests/unit/SocialManagement.Beneficiarios.Domain.UnitTests/SocialManagement.Beneficiarios.Domain.UnitTests.csproj" />
+    <Project Path="tests/unit/SocialManagement.Beneficiarios.Infrastructure.UnitTests/SocialManagement.Beneficiarios.Infrastructure.UnitTests.csproj" />
   </Folder>
 </Solution>

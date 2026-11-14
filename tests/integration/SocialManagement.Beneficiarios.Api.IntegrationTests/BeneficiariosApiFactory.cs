@@ -57,11 +57,3 @@ public class BeneficiariosApiFactory : WebApplicationFactory<Program>
         });
     }
 }
-
-/// <summary>Fábrica con una configuración incompleta, para probar los mensajes de error de arranque.</summary>
-public sealed class MisconfiguredBeneficiariosApiFactory(Dictionary<string, string?> overrides)
-    : BeneficiariosApiFactory(overrides);
-
-/// <summary>Fábrica con configuración y ambiente a elección (p. ej. Production con credenciales).</summary>
-public sealed class CustomBeneficiariosApiFactory(Dictionary<string, string?> overrides, string environment)
-    : BeneficiariosApiFactory(overrides, environment);

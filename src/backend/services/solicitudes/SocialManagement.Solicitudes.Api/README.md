@@ -4,7 +4,9 @@ Capa de presentación (ASP.NET Core Web API con Controllers). Depende de `Applic
 
 | Carpeta         | Contenido                                                                     |
 |-----------------|-------------------------------------------------------------------------------|
-| `Controllers`   | Solo traducen HTTP ↔ casos de uso. Hoy: `VersionController` (`GET /version`). |
+| `Controllers`   | `BaseApiController`: base de todos los controllers de recursos (ruta versionada `api/v{version:apiVersion}/[controller]`, `ApiResponse<T>`, `UseCase<T>()`, `Logger`). |
+| `Endpoints`     | Funciones de Minimal APIs, registradas con `app.MapGet` en `Program.cs`: `GetVersionEndpoint` (`GET /version`). |
+| `Contracts`     | Modelos HTTP, un tipo por archivo: `ApiResponse<T>`, `ApiError`, `VersionResponse`. |
 | `Middleware`    | `GlobalExceptionHandler`: excepciones → ProblemDetails + log.                  |
 | `Extensions`    | Registro de servicios de la API, pipeline HTTP y escritura JSON de health checks. |
 | `Configuration` | Opciones propias de la API (`ServiceInfoOptions`).                            |

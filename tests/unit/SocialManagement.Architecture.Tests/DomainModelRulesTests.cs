@@ -42,6 +42,35 @@ public sealed class DomainModelRulesTests
         }
     }
 
+    /// <summary>
+    /// El dominio no sabe cómo se guarda: nada de [Key], [Required], [MaxLength], [Table], [Column]...
+    /// El mapeo va en Infrastructure/Persistence/Configurations (IEntityTypeConfiguration).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Services))]
+    public void Entidades_y_value_objects_no_usan_atributos_de_persistencia(string service)
+    {
+        var types = DomainTypes(service, "Entities").Concat(DomainTypes(service, "ValueObjects"));
+
+        foreach (var type in types)
+        {
+            var members = new MemberInfo[] { type }.Concat(type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            foreach (var member in members)
+            {
+                var persistenceAttributes = member.GetCustomAttributes(inherit: false)
+                    .Select(attribute => attribute.GetType())
+                    .Where(attributeType => attributeType.Namespace?.StartsWith("System.ComponentModel.DataAnnotations", StringComparison.Ordinal) == true
+                                            || attributeType.Namespace?.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal) == true)
+                    .Select(attributeType => attributeType.Name)
+                    .ToList();
+
+                Assert.True(
+                    persistenceAttributes.Count == 0,
+                    $"{type.Name}.{member.Name} usa {string.Join(", ", persistenceAttributes)}: configura la persistencia en Infrastructure/Persistence/Configurations.");
+            }
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Services))]
     public void Las_excepciones_del_dominio_heredan_de_DomainException(string service)

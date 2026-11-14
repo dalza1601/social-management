@@ -2,8 +2,8 @@
 
   <!--
     Capa de APLICACIÓN.
-    Regla: solo depende de Domain. Se permite la abstracción de DI de Microsoft
-    (no es infraestructura, solo la interfaz IServiceCollection).
+    Regla: solo depende de Domain. Se permiten la abstracción de DI de Microsoft (solo la interfaz
+    IServiceCollection) y FluentValidation (biblioteca de validación, sin HTTP ni infraestructura).
   -->
   <PropertyGroup>
     <RootNamespace>SocialManagement.Beneficiarios.Application</RootNamespace>
@@ -15,6 +15,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- Validación de los datos de entrada (comandos y consultas) antes de crear objetos de dominio. -->
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
   </ItemGroup>
 
 </Project>

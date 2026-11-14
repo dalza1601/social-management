@@ -1,45 +1,42 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using SocialManagement.Beneficiarios.Api.Configuration;
-using SocialManagement.Beneficiarios.Api.Controllers;
+using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Endpoints;
 
 namespace SocialManagement.Beneficiarios.Api.UnitTests;
 
 /// <summary>
-/// Pruebas unitarias del endpoint demostrativo GET /api/demo/status.
-/// Patrón Arrange / Act / Assert. El reloj es falso: la hora es fija y predecible.
+/// Pruebas unitarias del Minimal API GET /api/demo/status.
+/// La función del endpoint se invoca directamente (sin servidor HTTP), con un reloj falso.
+/// Patrón Arrange / Act / Assert.
 /// </summary>
 [Trait("Category", "Unit")]
-public sealed class DemoControllerTests : IDisposable
+public sealed class GetDemoStatusEndpointTests : IDisposable
 {
     private static readonly DateTimeOffset FixedNow = new(2026, 11, 13, 15, 30, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _clock = new(FixedNow);
     private readonly FakeHostApplicationLifetime _lifetime = new();
-    private readonly DemoController _controller;
-
-    public DemoControllerTests()
-    {
-        var serviceInfo = Options.Create(new ServiceInfoOptions { Name = "beneficiarios-api-test" });
-        _controller = new DemoController(serviceInfo, _clock, _lifetime);
-    }
+    private readonly IOptions<ServiceInfoOptions> _serviceInfo =
+        Options.Create(new ServiceInfoOptions { Name = "beneficiarios-api-test" });
 
     [Fact]
     public void Devuelve_200_con_nombre_version_fecha_UTC_y_estado_Running()
     {
         // Act
-        var result = _controller.GetStatus();
+        var result = GetDemoStatusEndpoint.Handle(_serviceInfo, _clock, _lifetime);
 
         // Assert
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var ok = Assert.IsType<Ok<DemoStatusResponse>>(result.Result);
         var status = Assert.IsType<DemoStatusResponse>(ok.Value);
         Assert.Equal("beneficiarios-api-test", status.ServiceName);
         Assert.Equal(ServiceVersion.Current, status.Version);
         Assert.Equal(FixedNow, status.TimestampUtc);
         Assert.Equal(TimeSpan.Zero, status.TimestampUtc.Offset);
-        Assert.Equal(DemoController.RunningStatus, status.Status);
+        Assert.Equal(GetDemoStatusEndpoint.RunningStatus, status.Status);
     }
 
     [Fact]
@@ -49,10 +46,11 @@ public sealed class DemoControllerTests : IDisposable
         _clock.Advance(TimeSpan.FromMinutes(90));
 
         // Act
-        var status = (DemoStatusResponse)((OkObjectResult)_controller.GetStatus().Result!).Value!;
+        var result = GetDemoStatusEndpoint.Handle(_serviceInfo, _clock, _lifetime);
 
         // Assert
-        Assert.Equal(FixedNow.AddMinutes(90), status.TimestampUtc);
+        var ok = Assert.IsType<Ok<DemoStatusResponse>>(result.Result);
+        Assert.Equal(FixedNow.AddMinutes(90), ok.Value!.TimestampUtc);
     }
 
     [Fact]
@@ -62,13 +60,12 @@ public sealed class DemoControllerTests : IDisposable
         _lifetime.StopApplication();
 
         // Act
-        var result = _controller.GetStatus();
+        var result = GetDemoStatusEndpoint.Handle(_serviceInfo, _clock, _lifetime);
 
         // Assert
-        var objectResult = Assert.IsType<ObjectResult>(result.Result);
-        Assert.Equal(StatusCodes.Status503ServiceUnavailable, objectResult.StatusCode);
-        var status = Assert.IsType<DemoStatusResponse>(objectResult.Value);
-        Assert.Equal(DemoController.StoppingStatus, status.Status);
+        var json = Assert.IsType<JsonHttpResult<DemoStatusResponse>>(result.Result);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, json.StatusCode);
+        Assert.Equal(GetDemoStatusEndpoint.StoppingStatus, json.Value!.Status);
     }
 
     [Fact]

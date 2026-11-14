@@ -100,6 +100,8 @@ classDiagram
         +TipoDocumentoIdentidad Tipo
         +string Numero
         +Crear(tipo, numero)$ DocumentoIdentidad
+        +EsValido(tipo, numero)$ bool
+        +DescripcionDelFormato(tipo)$ string
     }
     class TipoDocumentoIdentidad {
         <<enum>>
@@ -112,10 +114,103 @@ classDiagram
         Activo
         Inactivo
     }
+    class AuditableEntity {
+        <<abstract>>
+        +DateTime CreatedAtUtc
+        +string? CreatedBy
+        +DateTime? UpdatedAtUtc
+        +string? UpdatedBy
+        +MarkCreated(createdAtUtc, createdBy)
+        +MarkUpdated(updatedAtUtc, updatedBy)
+    }
+    AuditableEntity <|-- Beneficiario
     Beneficiario *-- DocumentoIdentidad
     Beneficiario --> EstadoBeneficiario
     DocumentoIdentidad --> TipoDocumentoIdentidad
 ```
+
+### Persistencia: el dominio no sabe cómo se guarda
+
+La entidad **no lleva atributos de persistencia** (`[Key]`, `[Required]`, `[MaxLength]`, `[Table]`...). La clave
+primaria, los campos requeridos, las longitudes, los índices y las relaciones se declaran en Infrastructure, con la
+Fluent API de EF Core, en `Persistence/Configurations/BeneficiarioConfiguration.cs`:
+
+```csharp
+internal sealed class BeneficiarioConfiguration : IEntityTypeConfiguration<Beneficiario>
+{
+    public void Configure(EntityTypeBuilder<Beneficiario> builder)
+    {
+        builder.ToTable("Beneficiarios");                                   // esquema "beneficiarios"
+        builder.HasKey(b => b.Id);                                          // clave primaria
+        builder.Property(b => b.Id).ValueGeneratedNever();                  // el Guid v7 lo genera el dominio
+        builder.Property(b => b.Nombres).IsRequired().HasMaxLength(Beneficiario.LongitudMaximaNombre);
+        builder.Property(b => b.Estado).IsRequired().HasConversion<string>().HasMaxLength(20);
+        builder.Ignore(b => b.NombreCompleto);                              // calculada: no es columna
+
+        // Relación con el value object: tipo propio (owned), columnas en la misma tabla e índice único.
+        builder.OwnsOne(b => b.Documento, documento =>
+        {
+            documento.Property(d => d.Numero).HasColumnName("DocumentoNumero").IsRequired().HasMaxLength(12);
+            documento.HasIndex(d => new { d.Tipo, d.Numero }).IsUnique();
+        });
+    }
+}
+```
+
+Tabla resultante (script generado por EF Core a partir de esa configuración):
+
+```sql
+CREATE TABLE [beneficiarios].[Beneficiarios] (
+    [Id] uniqueidentifier NOT NULL,
+    [Nombres] nvarchar(100) NOT NULL,
+    [Apellidos] nvarchar(100) NOT NULL,
+    [DocumentoTipo] nvarchar(20) NOT NULL,
+    [DocumentoNumero] nvarchar(12) NOT NULL,
+    [FechaRegistroUtc] datetimeoffset NOT NULL,
+    [Estado] nvarchar(20) NOT NULL,
+    [CreatedAtUtc] datetime2 NOT NULL,
+    [CreatedBy] nvarchar(100) NULL,
+    [UpdatedAtUtc] datetime2 NULL,
+    [UpdatedBy] nvarchar(100) NULL,
+    CONSTRAINT [PK_Beneficiarios] PRIMARY KEY ([Id])
+);
+CREATE UNIQUE INDEX [UX_Beneficiarios_Documento] ON [beneficiarios].[Beneficiarios] ([DocumentoTipo], [DocumentoNumero]);
+```
+
+| Pieza | Capa | Archivo |
+|-------|------|---------|
+| Reglas e invariantes | Domain | `Entities/Beneficiario.cs` |
+| Clave primaria, columnas, índices, relaciones | Infrastructure | `Persistence/Configurations/BeneficiarioConfiguration.cs` |
+| `DbSet<Beneficiario>` y registro de configuraciones | Infrastructure | `Persistence/BeneficiariosDbContext.cs` (`ApplyConfigurationsFromAssembly`) |
+
+- Las longitudes usan las **constantes del dominio** (`Beneficiario.LongitudMaximaNombre`,
+  `DocumentoIdentidad.LongitudMaximaNumero`): la base de datos y las invariantes no pueden desalinearse.
+- El índice único **refuerza en la base de datos** la regla "un documento no puede repetirse" (el caso de uso la
+  valida antes; el índice protege ante dos registros simultáneos).
+- La única concesión del dominio a EF Core es un **constructor privado sin parámetros** en `Beneficiario`, que EF usa
+  para leer filas. Al ser privado, el código de la aplicación sigue sin poder crear un beneficiario sin `Registrar`.
+- Reglas verificadas: `Entidades_y_value_objects_no_usan_atributos_de_persistencia` (arquitectura) y
+  `BeneficiarioConfigurationTests` (modelo y script SQL, sin conectarse a SQL Server).
+
+### Auditoría: `AuditableEntity`
+
+Las entidades heredan de `Domain/Entities/AuditableEntity.cs` los campos `CreatedAtUtc`, `CreatedBy`, `UpdatedAtUtc`
+y `UpdatedBy`. Sus setters son privados: solo cambian con `MarkCreated(...)` y `MarkUpdated(...)`, que convierten
+las fechas a UTC.
+
+Nadie tiene que acordarse de llamarlos: el **interceptor de EF Core** `AuditableEntityInterceptor`
+(`Infrastructure/Persistence/Interceptors`) los invoca justo antes de cada `SaveChanges`:
+
+| Estado de la entidad | Qué hace el interceptor |
+|----------------------|-------------------------|
+| Nueva (`Added`) | `MarkCreated(ahora, usuario)` |
+| Modificada (`Modified`) | `MarkUpdated(ahora, usuario)` y protege `CreatedAtUtc`/`CreatedBy` para que no se reescriban |
+
+- La hora viene de `TimeProvider` (en pruebas, `FakeTimeProvider`).
+- El usuario es `null` hasta que exista autenticación (módulo de seguridad).
+- El mapeo de las columnas de auditoría es común: `builder.ConfigureAuditFields()` en cada configuración.
+- `FechaRegistroUtc` (dato de negocio: cuándo se registró la persona) y `CreatedAtUtc` (dato técnico: cuándo se
+  insertó la fila) son conceptos distintos y se mantienen separados.
 
 ### Entidad vs. Value Object
 
@@ -153,7 +248,39 @@ La última regla **no puede vivir en la entidad**: un beneficiario no conoce a l
 de uso consultando el repositorio.
 
 Todas las excepciones heredan de `DomainException`, y el `GlobalExceptionHandler` de la sesión 01 ya las traduce a
-**HTTP 422** con ProblemDetails: el controller de una sesión futura no necesitará `try/catch`.
+**HTTP 422**: el controller de una sesión futura no necesitará `try/catch`.
+
+### Validación de entrada con FluentValidation
+
+Antes de convertir los datos de entrada (el comando) en objetos de dominio, el caso de uso los valida con
+**FluentValidation** (`Application/Validators`). Así el cliente recibe **todos** los errores de una vez, por campo
+(HTTP 400), en lugar del primero que encuentre el dominio:
+
+```csharp
+public sealed class RegistrarBeneficiarioCommandValidator : AbstractValidator<RegistrarBeneficiarioCommand>
+{
+    public RegistrarBeneficiarioCommandValidator()
+    {
+        RuleFor(c => c.Nombres).NombreDePersona("nombres");       // regla reutilizable (NombreDePersonaRules)
+        RuleFor(c => c.Apellidos).NombreDePersona("apellidos");
+        RuleFor(c => c.TipoDocumento).IsInEnum().WithMessage("El tipo de documento no es válido.");
+        RuleFor(c => c.NumeroDocumento)
+            .NotEmpty().WithMessage("El número de documento es obligatorio.")
+            .Must((c, numero) => DocumentoIdentidad.EsValido(c.TipoDocumento, numero))    // regla del dominio
+            .WithMessage(c => DocumentoIdentidad.DescripcionDelFormato(c.TipoDocumento));
+    }
+}
+```
+
+| | Validador (Application) | Invariantes (Domain) |
+|---|---|---|
+| Cuándo | Primer paso del caso de uso | Al crear o modificar el objeto |
+| Errores | Todos a la vez, por campo → **400** | El primero → **422** |
+| Propósito | Retroalimentación al usuario | Garantía: nunca existe un objeto inválido |
+
+Las reglas no se duplican: el validador usa `Beneficiario.LongitudMaximaNombre`, `NormalizarNombre`,
+`TieneCaracteresPermitidos` y `DocumentoIdentidad.EsValido`. La prueba `El_validador_y_el_dominio_coinciden` pasa los
+mismos datos por ambos niveles y exige que coincidan.
 
 ---
 
@@ -172,8 +299,12 @@ sequenceDiagram
     participant R as IBeneficiarioRepository
     participant E as Beneficiario
     participant T as TimeProvider
+    participant U as IUnitOfWork
+    participant V as IValidator
 
     C->>H: HandleAsync(command)
+    H->>V: ValidateAndThrowAsync(command)
+    V-->>H: válido (o ValidationException → 400)
     H->>VO: Crear(tipo, número)
     VO-->>H: documento válido (o excepción)
     H->>R: ExisteConDocumentoAsync(documento)
@@ -182,11 +313,26 @@ sequenceDiagram
     H->>E: Registrar(nombres, apellidos, documento, fecha)
     E-->>H: beneficiario válido (o excepción)
     H->>R: AgregarAsync(beneficiario)
+    H->>U: SaveChangesAsync()
     H-->>C: BeneficiarioDto
 ```
 
 El handler **orquesta** y no valida formatos: eso lo hacen el value object y la entidad. Si los datos son inválidos,
-la excepción ocurre **antes** de llegar al repositorio.
+la excepción ocurre **antes** de llegar al repositorio, y nunca se confirma nada.
+
+**Unit of Work.** El repositorio solo *registra* los cambios (`AgregarAsync`); el handler los **confirma** con
+`IUnitOfWork.SaveChangesAsync()`, todo o nada. `IUnitOfWork` está en `Application/Interfaces` y lo implementa el
+`DbContext` del servicio (Infrastructure), la misma instancia que usarán los repositorios en cada petición. Los
+controllers nunca usan el Unit of Work: obtienen el caso de uso (`UseCase<T>()` de `BaseApiController`) y lo ejecutan.
+
+```mermaid
+flowchart LR
+    CT["Controller<br/>(hereda BaseApiController)"] -->|"UseCase&lt;T&gt;()"| H[Handler]
+    H --> R[IBeneficiarioRepository]
+    H --> U[IUnitOfWork]
+    R -.registra.-> DB[(DbContext)]
+    U -.confirma.-> DB
+```
 
 ### Decisiones de diseño (y lo que NO hicimos)
 
@@ -258,13 +404,19 @@ lectura y escritura; hoy no hace falta.
 Los módulos de alto nivel (casos de uso) dependen de **abstracciones**, no de detalles:
 
 ```csharp
-public sealed class RegistrarBeneficiarioHandler(IBeneficiarioRepository repository, TimeProvider timeProvider)
+public sealed class RegistrarBeneficiarioHandler(
+    IValidator<RegistrarBeneficiarioCommand> validator,
+    IBeneficiarioRepository repository,
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider)
 ```
 
-- No hay `new SqlConnection(...)` ni `DbContext`: se recibe un `IBeneficiarioRepository`.
+- No hay `new SqlConnection(...)` ni `DbContext`: se recibe un `IBeneficiarioRepository` y un `IUnitOfWork`.
 - No hay `DateTime.UtcNow`: se recibe un `TimeProvider` (la misma abstracción de la sesión 01).
 
-Gracias a esto, las pruebas reemplazan ambas dependencias y se ejecutan en milisegundos, sin base de datos.
+Gracias a esto, las pruebas reemplazan las dependencias (`FakeBeneficiarioRepository`, `FakeUnitOfWork`,
+`FakeTimeProvider`) y se ejecutan en milisegundos, sin base de datos. `FakeUnitOfWork` permite comprobar que los
+cambios se confirman una sola vez al registrar y nunca cuando hay un error.
 
 ---
 
@@ -273,7 +425,7 @@ Gracias a esto, las pruebas reemplazan ambas dependencias y se ejecutan en milis
 | Proyecto | Qué prueba |
 |----------|------------|
 | `tests/unit/SocialManagement.Beneficiarios.Domain.UnitTests` | `DocumentoIdentidadTests` y `BeneficiarioTests`: todas las invariantes, la normalización, la igualdad por valor y el estado |
-| `tests/unit/SocialManagement.Beneficiarios.Application.UnitTests` | `RegistrarBeneficiarioHandlerTests` y `ConsultarBeneficiarioHandlerTests`, con `FakeBeneficiarioRepository` y `FakeTimeProvider` |
+| `tests/unit/SocialManagement.Beneficiarios.Application.UnitTests` | `RegistrarBeneficiarioHandlerTests` y `ConsultarBeneficiarioHandlerTests` (con `FakeBeneficiarioRepository`, `FakeUnitOfWork` y `FakeTimeProvider`); `RegistrarBeneficiarioCommandValidatorTests` (FluentValidation `TestValidate` y coherencia con el dominio) |
 | `tests/unit/SocialManagement.Architecture.Tests` → `DomainModelRulesTests` | En todos los servicios: entidades y value objects sin setters ni constructores públicos; excepciones derivadas de `DomainException` |
 
 ```powershell

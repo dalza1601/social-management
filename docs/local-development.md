@@ -114,6 +114,7 @@ dotnet test --project tests/unit/SocialManagement.Architecture.Tests
 | `tests/unit/SocialManagement.Beneficiarios.Api.UnitTests` | Unitarias: controllers de la API (sesión 01) | No |
 | `tests/unit/SocialManagement.Beneficiarios.Domain.UnitTests` | Unitarias: invariantes del dominio (sesión 02) | No |
 | `tests/unit/SocialManagement.Beneficiarios.Application.UnitTests` | Unitarias: casos de uso con dobles de prueba (sesión 02) | No |
+| `tests/unit/SocialManagement.Beneficiarios.Infrastructure.UnitTests` | Unitarias: mapeo EF Core (`BeneficiarioConfiguration`) y script SQL, sin base de datos | No |
 | `tests/integration/SocialManagement.*.Api.IntegrationTests` | Integración en memoria: arranque, DI, endpoints, errores, validación de configuración | No |
 | `tests/integration/SocialManagement.Gateway.IntegrationTests` | Integración: rutas YARP contra servicios simulados | No |
 | `tests/environment/SocialManagement.LocalEnvironment.Tests` | Validación estática de `docker-compose.yml` (siempre) + contenedores en vivo (opcional) | Solo las pruebas en vivo |
@@ -152,5 +153,9 @@ npx ng test --watch=false
 - Código y nombres técnicos en inglés; documentación, mensajes al usuario y nombres de dominio en español.
 - `.editorconfig` define el estilo (namespaces de archivo, `_camelCase` para campos privados, LF).
 - Versiones de paquetes solo en `Directory.Packages.props`.
+- **Un tipo por archivo**, con el mismo nombre que el tipo (verificado por `SourceFileConventionsTests`). Los modelos
+  HTTP van en `Api/Contracts/`; los endpoints puntuales se escriben como Minimal APIs (`Api/Endpoints/` + `app.MapGet`)
+  y los recursos con varias operaciones como controllers que heredan de `BaseApiController`
+  (ver [architecture.md](architecture.md#convenciones-de-la-capa-api)).
 - En CI, cualquier advertencia de compilación es un error (`TreatWarningsAsErrors` cuando `CI=true`).
 - Nunca subas `.env` ni secretos. Usa user-secrets o variables de entorno.

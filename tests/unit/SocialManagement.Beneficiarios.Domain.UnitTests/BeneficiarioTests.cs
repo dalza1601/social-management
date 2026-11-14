@@ -118,6 +118,19 @@ public sealed class BeneficiarioTests
     }
 
     [Fact]
+    public void Es_una_entidad_auditable_cuya_auditoria_no_llena_el_dominio()
+    {
+        var beneficiario = Beneficiario.Registrar("Ana", "Quispe", Documento, FechaRegistro);
+
+        // La auditoría la completa la infraestructura al guardar (AuditableEntityInterceptor), no el dominio.
+        Assert.IsAssignableFrom<AuditableEntity>(beneficiario);
+        Assert.Equal(default, beneficiario.CreatedAtUtc);
+        Assert.Null(beneficiario.CreatedBy);
+        Assert.Null(beneficiario.UpdatedAtUtc);
+        Assert.Null(beneficiario.UpdatedBy);
+    }
+
+    [Fact]
     public void Desactivar_y_activar_cambian_el_estado_y_son_idempotentes()
     {
         var beneficiario = Beneficiario.Registrar("Ana", "Quispe", Documento, FechaRegistro);

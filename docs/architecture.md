@@ -112,6 +112,9 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | Application no usa EF Core, ASP.NET Core, RabbitMQ, AWS ni YARP | `Assembly.GetReferencedAssemblies()`     |
 | Un microservicio no referencia proyectos de otro                | `.csproj` y ensamblados                  |
 | No existe una biblioteca "Shared/Common" de dominio             | Busca proyectos con esos nombres         |
+| Entidades y value objects sin setters ni constructores públicos | Reflexión sobre `Domain.Entities` y `Domain.ValueObjects` |
+| Entidades sin atributos de persistencia (`[Key]`, `[Required]`...) | Reflexión: el mapeo va en `Infrastructure/Persistence/Configurations` |
+| Un tipo por archivo, con el nombre del tipo                      | `SourceFileConventionsTests` sobre `src` y `tests` |
 
 > Prueba a agregar `<ProjectReference>` de `Application` a `Infrastructure`: las pruebas fallarán
 > y te dirán qué regla se rompió.
@@ -139,14 +142,114 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | Gateway     | `GET /health`     | El Gateway responde.                                          |
 | Gateway     | `GET /health/ready` | El Gateway alcanza el `/health` de cada microservicio.      |
 
-Los errores se devuelven como **ProblemDetails** (`application/problem+json`, RFC 9457):
+Los endpoints técnicos son **Minimal APIs** y sus errores se devuelven como **ProblemDetails**
+(`application/problem+json`, RFC 9457). Los controllers de recursos usan `ApiResponse<T>` (ver la sección siguiente).
 
-| Excepción                       | HTTP | `detail`                       |
+| Excepción                       | HTTP | Mensaje al cliente             |
 |---------------------------------|------|--------------------------------|
 | Hereda de `DomainException`     | 422  | Mensaje de la excepción        |
-| Cualquier otra                  | 500  | Vacío (no se exponen detalles internos) |
+| Cualquier otra                  | 500  | Ninguno (no se exponen detalles internos) |
 
 Todas las respuestas de error incluyen `traceId` para correlacionarlas con los logs.
+
+## Convenciones de la capa API
+
+| Tipo de endpoint | Cómo se escribe | Dónde | Formato de respuesta |
+|------------------|-----------------|-------|----------------------|
+| Puntual o técnico (`/version`, `/api/demo/status`) | **Minimal API**: `app.MapGet` en `Program.cs` + función estática | `Api/Endpoints/` | DTO directo; errores en ProblemDetails |
+| Recurso con varias operaciones (CRUD de beneficiarios...) | **Controller** que hereda de `BaseApiController` | `Api/Controllers/` | `ApiResponse<T>` en éxitos y errores |
+| Modelos HTTP | `record` en su propio archivo | `Api/Contracts/` | — |
+
+### `BaseApiController`
+
+Todos los controllers heredan de `Controllers/BaseApiController.cs`, que concentra la configuración común para no
+repetirla en cada uno:
+
+- `[ApiController]`, `[Route("api/v{version:apiVersion}/[controller]")]` (versión en la URL y rutas en minúsculas:
+  `BeneficiariosController` → `/api/v1/beneficiarios`) y `[Produces("application/json")]`.
+- Respuestas de error 400, 422 y 500 documentadas en OpenAPI para todas las acciones.
+- Métodos que devuelven `ApiResponse<T>`: `ApiOk`, `ApiCreated`, `ApiNotFound`, `ApiOkOrNotFound`.
+- Dependencias comunes **sin inyección por constructor**, resueltas solo cuando se usan: `UseCase<T>()` (casos de uso
+  de Application), `Logger` y `TraceId`.
+
+```json
+// ApiResponse<T>: éxito (200/201)
+{ "success": true, "data": { "id": "..." }, "message": null, "errors": [], "traceId": "00-..." }
+
+// ApiResponse<T>: error (400/404/422/500)
+{ "success": false, "data": null, "message": "La solicitud contiene datos no válidos.",
+  "errors": [ { "field": "Nombres", "message": "Los nombres son obligatorios." } ], "traceId": "00-..." }
+```
+
+| Error en un controller | Quién lo produce | HTTP |
+|------------------------|------------------|------|
+| Modelo inválido (tipos, JSON mal formado, `[Required]`) | `InvalidModelStateResponseFactory` (`AddApiPresentation`) | 400 |
+| Datos de entrada inválidos (FluentValidation) | El caso de uso lanza `ValidationException` → `GlobalExceptionHandler` | 400 |
+| Recurso inexistente | `ApiNotFound` / `ApiOkOrNotFound` | 404 |
+| `DomainException` | `GlobalExceptionHandler` | 422 |
+| Excepción inesperada | `GlobalExceptionHandler` (sin detalles internos) | 500 |
+
+Fuera de los controllers (Minimal APIs), los mismos errores usan ProblemDetails; los de validación, el formato estándar
+`ValidationProblemDetails` (`{ "errors": { "Campo": ["mensaje"] } }`).
+
+### Versionado de la API
+
+| Elemento | Detalle |
+|----------|---------|
+| Ruta | `api/v{version:apiVersion}/[controller]` en `BaseApiController` → `/api/v1/beneficiarios` |
+| Versión por defecto | 1.0: un controller sin `[ApiVersion]` pertenece a la v1 |
+| Nueva versión | `[ApiVersion("2.0")]` en el controller o la acción que cambia; ambas versiones conviven |
+| Cabecera de respuesta | `api-supported-versions: 1.0` |
+| Versión inexistente o ausente | La petición no llega al controller (400/404) |
+| OpenAPI | Un documento por versión (`/openapi/v1.json`), con rutas ya resueltas (`/api/v1/...`) |
+| Paquete | `Asp.Versioning.OpenApi` (registro en `Extensions/ApiVersioningExtensions.cs`) |
+
+Los Minimal APIs técnicos (`/version`, `/health`, `/api/demo/status`) no se versionan.
+
+### Validación de los datos de entrada (FluentValidation)
+
+Los datos llegan como comandos o consultas (DTOs de entrada de Application) y se validan **antes** de convertirse en
+objetos de dominio:
+
+| Nivel | Dónde | Para qué |
+|-------|-------|----------|
+| 1. Entrada | `Application/Validators/*Validator.cs` (FluentValidation) | Informar **todos** los errores a la vez, por campo, para mostrarlos en el formulario |
+| 2. Invariantes | Entidades y value objects del dominio | Última barrera: un objeto de dominio nunca existe en estado inválido |
+
+- Los validadores se registran solos (`AddValidatorsFromAssembly` en `AddApplication`) y cada caso de uso recibe su
+  `IValidator<T>` y llama a `ValidateAndThrowAsync` como primer paso.
+- Para no duplicar reglas, el validador **reutiliza las del dominio** (`Beneficiario.LongitudMaximaNombre`,
+  `NormalizarNombre`, `TieneCaracteresPermitidos`, `DocumentoIdentidad.EsValido`). La prueba
+  `El_validador_y_el_dominio_coinciden` comprueba que ambos niveles aceptan y rechazan los mismos datos.
+- FluentValidation es el único paquete permitido en Application además de la abstracción de DI (lo verifican las
+  pruebas de arquitectura): no es infraestructura ni HTTP.
+
+### Flujo completo con validación y Unit of Work
+
+```mermaid
+sequenceDiagram
+    participant C as Controller (BaseApiController)
+    participant H as Caso de uso (Application)
+    participant V as IValidator (FluentValidation)
+    participant D as Dominio
+    participant R as Repositorio
+    participant U as IUnitOfWork (DbContext)
+    C->>H: UseCase<RegistrarBeneficiarioHandler>().HandleAsync(command)
+    H->>V: ValidateAndThrowAsync(command)  — 400 si hay errores
+    H->>D: DocumentoIdentidad.Crear / Beneficiario.Registrar
+    H->>R: AgregarAsync(entidad)  — solo registra
+    H->>U: SaveChangesAsync()     — confirma todo o nada
+    H-->>C: DTO
+    C-->>C: ApiCreated(...) → 201 ApiResponse
+```
+
+- El **controller no conoce la persistencia**: solo obtiene y ejecuta casos de uso.
+- El **caso de uso** coordina repositorios y confirma con `IUnitOfWork` (definido en `Application/Interfaces`).
+- `IUnitOfWork` lo implementa el **`DbContext`** del servicio y se registra como la misma instancia *scoped* que usarán
+  los repositorios: todo lo registrado durante la petición se guarda en una sola transacción.
+- Al confirmar, el interceptor `AuditableEntityInterceptor` completa la **auditoría** (`CreatedAtUtc`, `CreatedBy`,
+  `UpdatedAtUtc`, `UpdatedBy`) de las entidades que heredan de `AuditableEntity`, llamando a `MarkCreated` /
+  `MarkUpdated`. Ni el controller ni el caso de uso escriben esos campos.
 
 ## Configuración
 

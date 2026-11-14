@@ -3,11 +3,14 @@ using Amazon.SQS;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Infrastructure.Configurations;
 using SocialManagement.Beneficiarios.Infrastructure.ExternalServices.Aws;
 using SocialManagement.Beneficiarios.Infrastructure.Messaging;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
+using SocialManagement.Beneficiarios.Infrastructure.Persistence.Interceptors;
 
 namespace SocialManagement.Beneficiarios.Infrastructure.DependencyInjection;
 
@@ -44,6 +47,10 @@ public static class InfrastructureServiceCollectionExtensions
                 ConfigurationMessages.Required(SqlServerOptions.ConfigurationKey))
             .ValidateOnStart();
 
+        // Auditoría automática (CreatedAtUtc, UpdatedAtUtc...) de las entidades que heredan de AuditableEntity.
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<AuditableEntityInterceptor>();
+
         services.AddDbContext<BeneficiariosDbContext>((serviceProvider, options) =>
         {
             var sqlServer = serviceProvider.GetRequiredService<IOptions<SqlServerOptions>>().Value;
@@ -52,7 +59,11 @@ public static class InfrastructureServiceCollectionExtensions
                 sql.EnableRetryOnFailure(maxRetryCount: 3);
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", BeneficiariosDbContext.DefaultSchema);
             });
+            options.AddInterceptors(serviceProvider.GetRequiredService<AuditableEntityInterceptor>());
         });
+
+        // Unit of Work: la MISMA instancia del DbContext (scoped) que usan los repositorios en la petición.
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<BeneficiariosDbContext>());
 
         services.AddHealthChecks()
             .AddDbContextCheck<BeneficiariosDbContext>("sqlserver", tags: [ReadinessTag]);

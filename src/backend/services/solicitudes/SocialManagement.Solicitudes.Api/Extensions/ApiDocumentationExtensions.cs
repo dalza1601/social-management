@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Asp.Versioning;
 using Microsoft.Extensions.Options;
 using SocialManagement.Solicitudes.Api.Configuration;
 using SocialManagement.Solicitudes.Api.Configuration.OpenApi;
@@ -8,14 +9,21 @@ namespace SocialManagement.Solicitudes.Api.Extensions;
 
 /// <summary>
 /// Documentación de la API centralizada en la capa de presentación:
-/// - Documento OpenAPI generado por Microsoft.AspNetCore.OpenApi: /openapi/v1.json
+/// - Un documento OpenAPI por versión de la API (Microsoft.AspNetCore.OpenApi + Asp.Versioning.OpenApi):
+///   /openapi/v1.json
 /// - Swagger UI (Swashbuckle.AspNetCore.SwaggerUI, solo la interfaz): /swagger
 /// Domain, Application e Infrastructure no conocen nada de esto.
 /// </summary>
 public static partial class ApiDocumentationExtensions
 {
-    public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
+    /// <summary>
+    /// Registra la documentación sobre el versionado de la API (un documento por versión).
+    /// Uso: <c>services.AddUrlApiVersioning().AddApiDocumentation();</c>
+    /// </summary>
+    public static IApiVersioningBuilder AddApiDocumentation(this IApiVersioningBuilder versioning)
     {
+        ArgumentNullException.ThrowIfNull(versioning);
+        var services = versioning.Services;
         const string section = ApiDocumentationOptions.SectionName;
 
         services.AddOptions<ApiDocumentationOptions>()
@@ -39,14 +47,15 @@ public static partial class ApiDocumentationExtensions
                 $"o deshabilítala con '{section}__Enabled=false'.")
             .ValidateOnStart();
 
-        services.AddOpenApi(ApiDocumentationOptions.DocumentName, options =>
+        // Reemplaza a services.AddOpenApi(): registra un documento por versión ("v1", "v2"...).
+        versioning.AddOpenApi(options =>
         {
-            options.AddDocumentTransformer<ServiceInfoDocumentTransformer>();
-            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-            options.AddOperationTransformer<BearerSecurityRequirementTransformer>();
+            options.Document.AddDocumentTransformer<ServiceInfoDocumentTransformer>();
+            options.Document.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            options.Document.AddOperationTransformer<BearerSecurityRequirementTransformer>();
         });
 
-        return services;
+        return versioning;
     }
 
     /// <summary>
@@ -66,7 +75,9 @@ public static partial class ApiDocumentationExtensions
 
         app.UseMiddleware<ApiDocumentationAccessMiddleware>();
 
-        app.MapOpenApi($"/{ApiDocumentationOptions.OpenApiRoutePrefix}/{{documentName}}.json");
+        // Un documento por versión de la API: /openapi/v1.json (y /openapi/v2.json cuando exista la v2).
+        app.MapOpenApi($"/{ApiDocumentationOptions.OpenApiRoutePrefix}/{{documentName}}.json")
+            .WithDocumentPerVersion();
 
         app.UseSwaggerUI(ui =>
         {

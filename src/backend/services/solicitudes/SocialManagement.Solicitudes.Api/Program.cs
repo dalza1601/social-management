@@ -1,3 +1,4 @@
+using SocialManagement.Solicitudes.Api.Endpoints;
 using SocialManagement.Solicitudes.Api.Extensions;
 using SocialManagement.Solicitudes.Application;
 using SocialManagement.Solicitudes.Infrastructure.DependencyInjection;
@@ -20,5 +21,15 @@ builder.Services
 var app = builder.Build();
 
 app.UseApiPipeline();
+
+// -----------------------------------------------------------------------------------------
+// Minimal APIs: endpoints puntuales que no necesitan un controller. Aquí se registran la
+// ruta y su documentación OpenAPI; cada función está en su propio archivo en Endpoints/.
+// Los recursos con varias operaciones usan controllers que heredan de BaseApiController.
+// -----------------------------------------------------------------------------------------
+app.MapGet(GetVersionEndpoint.Route, GetVersionEndpoint.Handle)
+    .WithName("GetVersion")
+    .WithTags("Version")
+    .WithSummary("Devuelve el nombre, la versión y el entorno del servicio.");
 
 app.Run();

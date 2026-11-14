@@ -12,7 +12,8 @@ namespace SocialManagement.Beneficiarios.Application.Interfaces;
 /// que usan los casos de uso actuales. Se ampliará cuando un caso de uso nuevo lo necesite.
 /// Contrato que toda implementación debe respetar:
 /// - <see cref="ObtenerPorIdAsync"/> devuelve null si no existe (no lanza excepción).
-/// - <see cref="AgregarAsync"/> deja al beneficiario guardado al terminar.
+/// - <see cref="AgregarAsync"/> solo REGISTRA al beneficiario como nuevo; se guarda cuando el caso de uso
+///   confirma con <see cref="IUnitOfWork.SaveChangesAsync"/> (patrón Unit of Work).
 /// </remarks>
 public interface IBeneficiarioRepository
 {

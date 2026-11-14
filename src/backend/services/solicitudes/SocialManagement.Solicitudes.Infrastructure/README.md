@@ -4,7 +4,7 @@ Implementa los detalles técnicos. Depende de `Application` y `Domain`.
 
 | Carpeta              | Contenido                                                                                  |
 |----------------------|--------------------------------------------------------------------------------------------|
-| `Persistence`        | `SolicitudesDbContext` (sin tablas en Fase 0). Futuro: `EntityConfigurations/`, `Migrations/`. |
+| `Persistence`        | `SolicitudesDbContext` (aún sin tablas; implementa `IUnitOfWork`). Futuro: `Configurations/` (mapeo Fluent API por entidad), `Migrations/`. |
 | `Configurations`     | Opciones tipadas y validadas: `SqlServerOptions`, `RabbitMqOptions`, `AwsOptions`, `OllamaOptions`. |
 | `Repositories`       | Implementaciones de los repositorios definidos en `Application/Interfaces`.                |
 | `ExternalServices`   | Clientes de servicios externos. Hoy: `Aws/AwsClientFactory` (S3 y SQS sobre LocalStack).   |
