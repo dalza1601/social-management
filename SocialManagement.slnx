@@ -23,6 +23,7 @@
   </Folder>
   <Folder Name="/tests/integration/">
     <Project Path="tests/integration/SocialManagement.Beneficiarios.Api.IntegrationTests/SocialManagement.Beneficiarios.Api.IntegrationTests.csproj" />
+    <Project Path="tests/integration/SocialManagement.Beneficiarios.SqlServer.IntegrationTests/SocialManagement.Beneficiarios.SqlServer.IntegrationTests.csproj" />
     <Project Path="tests/integration/SocialManagement.Gateway.IntegrationTests/SocialManagement.Gateway.IntegrationTests.csproj" />
     <Project Path="tests/integration/SocialManagement.Solicitudes.Api.IntegrationTests/SocialManagement.Solicitudes.Api.IntegrationTests.csproj" />
   </Folder>

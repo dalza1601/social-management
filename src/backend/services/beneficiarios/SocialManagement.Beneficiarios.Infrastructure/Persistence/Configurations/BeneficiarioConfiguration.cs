@@ -26,10 +26,12 @@ internal sealed class BeneficiarioConfiguration : IEntityTypeConfiguration<Benef
         // El esquema "beneficiarios" lo define el DbContext (HasDefaultSchema).
         builder.ToTable(TableName);
 
-        // Clave primaria. El Guid v7 lo genera el dominio en Beneficiario.Registrar, nunca la base de datos.
+        // Clave primaria entera autoincremental (IDENTITY(1,1)): la genera SQL Server al insertar y
+        // EF Core la copia en Beneficiario.Id después del SaveChanges.
         builder.HasKey(beneficiario => beneficiario.Id);
         builder.Property(beneficiario => beneficiario.Id)
-            .ValueGeneratedNever();
+            .ValueGeneratedOnAdd()
+            .UseIdentityColumn();
 
         // Campos requeridos y longitudes: las mismas reglas que las invariantes del dominio.
         builder.Property(beneficiario => beneficiario.Nombres)

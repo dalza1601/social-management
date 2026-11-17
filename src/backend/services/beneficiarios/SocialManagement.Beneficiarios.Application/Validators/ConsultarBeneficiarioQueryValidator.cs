@@ -8,6 +8,6 @@ public sealed class ConsultarBeneficiarioQueryValidator : AbstractValidator<Cons
 {
     public ConsultarBeneficiarioQueryValidator() =>
         RuleFor(query => query.Id)
-            .NotEmpty()
-            .WithMessage("El identificador del beneficiario es obligatorio.");
+            .GreaterThan(0)
+            .WithMessage("El identificador del beneficiario debe ser un número entero mayor que 0.");
 }

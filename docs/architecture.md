@@ -38,7 +38,7 @@ flowchart TB
     B -->|"localhost:4200"| FE
     B -.->|"localhost:8080"| GW
     FE -->|"/gateway/* → http://gateway:8080"| GW
-    GW -->|"/api/beneficiarios/* → http://beneficiarios-api:8080"| SB
+    GW -->|"/api/beneficiarios/* · /api/v1/beneficiarios → http://beneficiarios-api:8080"| SB
     GW -->|"/api/solicitudes/* → http://solicitudes-api:8080"| SS
     BINF --> SQL
     SINF --> SQL
@@ -115,6 +115,7 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | Entidades y value objects sin setters ni constructores públicos | Reflexión sobre `Domain.Entities` y `Domain.ValueObjects` |
 | Entidades sin atributos de persistencia (`[Key]`, `[Required]`...) | Reflexión: el mapeo va en `Infrastructure/Persistence/Configurations` |
 | Un tipo por archivo, con el nombre del tipo                      | `SourceFileConventionsTests` sobre `src` y `tests` |
+| Entidades con `Id` entero (`int`) y ningún uso del tipo `Guid`   | `IdentifierRulesTests`: reflexión sobre `Domain.Entities` y búsqueda en `src` y `tests` |
 
 > Prueba a agregar `<ProjectReference>` de `Application` a `Infrastructure`: las pruebas fallarán
 > y te dirán qué regla se rompió.
@@ -125,9 +126,12 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 |----------|--------|
 | **Una solución por microservicio** (`SocialManagement.Beneficiarios.slnx`, `SocialManagement.Solicitudes.slnx`) y una solución raíz (`SocialManagement.slnx`) que agrupa todo. | Cada equipo puede abrir solo su servicio; CI compila todo junto. |
 | **Sin biblioteca compartida** entre servicios. Las piezas técnicas pequeñas (manejo de errores, health checks, opciones) están **duplicadas a propósito**. | Evita el acoplamiento entre servicios. Si en el futuro se necesita compartir algo técnico, se publicará como paquete NuGet versionado, nunca con entidades de dominio. |
+| **Identificadores enteros, sin GUID** (desde el 14/11/2026): las entidades usan `int Id` generado por SQL Server (`IDENTITY(1,1)`); el dominio no lo asigna (vale 0 hasta guardar). Los eventos de integración usan `long EventId` asignado por el emisor (p. ej. tabla outbox). | Ids legibles y fáciles de usar en URLs (`/api/v1/beneficiarios/25`), en soporte y en clase; claves primarias compactas. Regla del proyecto verificada por `IdentifierRulesTests`. |
 | **Esquema SQL propio** por servicio (`beneficiarios`, `solicitudes`) además de bases separadas. | Deja explícito el dueño de cada tabla y de su historial de migraciones. |
 | **Conexiones perezosas** a RabbitMQ y clientes AWS. | El servicio arranca aunque la dependencia no esté lista; su estado se ve en `/health/ready`. |
-| **Gateway con `PathRemovePrefix`**: `/api/beneficiarios/version` → `/version`. | Cada servicio expone rutas desde su raíz y no conoce su prefijo público. |
+| **Gateway con `PathRemovePrefix`** para los endpoints técnicos y la documentación: `/api/beneficiarios/version` → `/version`. | Cada servicio expone rutas desde su raíz y no conoce su prefijo público. |
+| **Gateway sin reescritura** para los recursos versionados: `/api/v1/beneficiarios/...` → igual en el servicio (ruta `beneficiarios-versioned-route`, restricción `v<número>`). | La URL pública del recurso es la misma que documenta el OpenAPI del servicio. |
+| **Migraciones aplicadas al iniciar solo en Docker Compose** (`Persistence__ApplyMigrationsAtStartup=true`); en otros ambientes, `dotnet ef database update` o un script SQL idempotente revisado. | Comodidad en desarrollo sin arriesgar cambios de esquema automáticos en producción. |
 | **El frontend llama a `/gateway/*` en su propio origen** (proxy de desarrollo o nginx). | Sin CORS y sin URLs del Gateway escritas en el código Angular. |
 
 ## Endpoints técnicos

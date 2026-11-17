@@ -16,11 +16,13 @@ public sealed class ConsultarBeneficiarioHandlerTests
     public ConsultarBeneficiarioHandlerTests() =>
         _handler = new ConsultarBeneficiarioHandler(new ConsultarBeneficiarioQueryValidator(), _repository);
 
-    [Fact]
-    public async Task Rechaza_un_identificador_vacio()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Rechaza_un_identificador_que_no_es_positivo(int id)
     {
         var excepcion = await Assert.ThrowsAsync<ValidationException>(
-            () => _handler.HandleAsync(new ConsultarBeneficiarioQuery(Guid.Empty), TestContext.Current.CancellationToken));
+            () => _handler.HandleAsync(new ConsultarBeneficiarioQuery(id), TestContext.Current.CancellationToken));
 
         Assert.Equal("Id", Assert.Single(excepcion.Errors).PropertyName);
     }
@@ -46,7 +48,7 @@ public sealed class ConsultarBeneficiarioHandlerTests
     [Fact]
     public async Task Devuelve_null_si_no_existe()
     {
-        var resultado = await _handler.HandleAsync(new ConsultarBeneficiarioQuery(Guid.NewGuid()), TestContext.Current.CancellationToken);
+        var resultado = await _handler.HandleAsync(new ConsultarBeneficiarioQuery(999), TestContext.Current.CancellationToken);
 
         Assert.Null(resultado);
     }

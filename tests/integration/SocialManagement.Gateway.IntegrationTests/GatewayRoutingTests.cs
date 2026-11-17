@@ -16,9 +16,39 @@ public sealed class GatewayRoutingTests(GatewayFixture fixture) : IClassFixture<
     {
         var config = fixture.Factory.Services.GetRequiredService<IProxyConfigProvider>().GetConfig();
 
-        var route = Assert.Single(config.Routes, r => r.ClusterId == service);
+        var route = Assert.Single(config.Routes, r => r.RouteId == $"{service}-route");
+        Assert.Equal(service, route.ClusterId);
         Assert.Equal($"/api/{service}/{{**catch-all}}", route.Match.Path);
         Assert.Contains(config.Clusters, c => c.ClusterId == service);
+    }
+
+    [Theory]
+    [InlineData("GET", "/api/v1/beneficiarios")]
+    [InlineData("POST", "/api/v1/beneficiarios")]
+    [InlineData("GET", "/api/v1/beneficiarios/25")]
+    [InlineData("PATCH", "/api/v1/beneficiarios/25/desactivar")]
+    [InlineData("GET", "/api/v2/beneficiarios")]
+    public async Task Reenvia_los_recursos_versionados_sin_modificar_la_ruta(string method, string path)
+    {
+        var client = fixture.Factory.CreateClient();
+
+        var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path), TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<FakeResponse>(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(body);
+        Assert.Equal("beneficiarios", body.Service);
+        Assert.Equal(path, body.Path);
+        Assert.Empty(body.ForwardedPrefix);   // no se quitó ningún prefijo: sin X-Forwarded-Prefix
+    }
+
+    [Theory]
+    [InlineData("/api/version1/beneficiarios")]
+    [InlineData("/api/vx/beneficiarios")]
+    public async Task La_ruta_versionada_exige_el_formato_v_numero(string path)
+    {
+        var response = await fixture.Factory.CreateClient().GetAsync(path, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Theory]

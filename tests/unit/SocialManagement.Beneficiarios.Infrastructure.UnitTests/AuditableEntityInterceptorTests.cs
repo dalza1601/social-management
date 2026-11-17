@@ -29,6 +29,14 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
     private static Beneficiario NuevoBeneficiario() => Beneficiario.Registrar(
         "Ana", "Quispe", DocumentoIdentidad.Crear(TipoDocumentoIdentidad.Dni, "12345678"), Ahora);
 
+    /// <summary>Beneficiario "leído de la base": con el Id que asignó SQL Server (el setter es privado).</summary>
+    private static Beneficiario BeneficiarioGuardado(int id)
+    {
+        var beneficiario = NuevoBeneficiario();
+        typeof(Beneficiario).GetProperty(nameof(Beneficiario.Id))!.SetValue(beneficiario, id);
+        return beneficiario;
+    }
+
     [Fact]
     public void Al_crear_completa_la_fecha_de_creacion_en_UTC()
     {
@@ -47,10 +55,10 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
     [Fact]
     public void Al_modificar_completa_la_fecha_de_modificacion_y_protege_la_de_creacion()
     {
-        var beneficiario = NuevoBeneficiario();
-        _context.Add(beneficiario);
-        _interceptor.ApplyAudit(_context);
-        _context.Entry(beneficiario).State = EntityState.Unchanged;   // simula que ya estaba guardado
+        // Simula un registro ya guardado: Id asignado por la base y auditoría de creación completa.
+        var beneficiario = BeneficiarioGuardado(1);
+        beneficiario.MarkCreated(Ahora.UtcDateTime, createdBy: null);
+        _context.Attach(beneficiario);   // Unchanged
 
         _clock.Advance(TimeSpan.FromHours(2));
         beneficiario.Desactivar();
@@ -68,8 +76,8 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
     [Fact]
     public void Las_entidades_sin_cambios_no_se_tocan()
     {
-        var beneficiario = NuevoBeneficiario();
-        _context.Attach(beneficiario);   // Unchanged
+        var beneficiario = BeneficiarioGuardado(1);
+        _context.Attach(beneficiario);   // Unchanged (con Id 0, EF Core lo trataría como nuevo: Added)
 
         _interceptor.ApplyAudit(_context);
 

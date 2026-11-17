@@ -67,6 +67,24 @@ public sealed class ApiDocumentationTests(BeneficiariosApiFactory factory) : ICl
         Assert.True(document.Components.SecuritySchemes is null || document.Components.SecuritySchemes.Count == 0);
     }
 
+    [Theory]
+    [InlineData("POST", "/api/v1/beneficiarios", "201,400,409")]
+    [InlineData("GET", "/api/v1/beneficiarios", "200,400")]
+    [InlineData("GET", "/api/v1/beneficiarios/{id}", "200,404")]
+    [InlineData("PUT", "/api/v1/beneficiarios/{id}", "200,400,404,409")]
+    [InlineData("PATCH", "/api/v1/beneficiarios/{id}/desactivar", "200,404")]
+    public async Task El_documento_OpenAPI_describe_el_CRUD_de_beneficiarios(string method, string path, string codes)
+    {
+        await using var stream = await factory.CreateClient().GetStreamAsync("/openapi/v1.json", Ct);
+        var document = (await OpenApiDocument.LoadAsync(stream, cancellationToken: Ct)).Document!;
+
+        Assert.True(document.Paths.ContainsKey(path), $"Falta {path}. Rutas: {string.Join(", ", document.Paths.Keys)}");
+        var operation = document.Paths[path]!.Operations![new HttpMethod(method)];
+        Assert.Contains(operation.Tags!, tag => tag.Name == "Beneficiarios");
+        Assert.False(string.IsNullOrWhiteSpace(operation.Summary));   // comentario XML del controller
+        Assert.All(codes.Split(','), code => Assert.True(operation.Responses!.ContainsKey(code), $"{method} {path} no documenta {code}."));
+    }
+
     [Fact]
     public async Task Detras_del_Gateway_el_documento_anuncia_la_URL_publica_con_HTTPS_y_prefijo()
     {

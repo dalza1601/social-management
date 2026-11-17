@@ -108,6 +108,16 @@ public sealed partial class ComposeConfigurationTests
         Assert.Equal("${ASPNETCORE_ENVIRONMENT:-Development}", environment["ASPNETCORE_ENVIRONMENT"]);
     }
 
+    [Fact]
+    public void La_API_de_beneficiarios_aplica_sus_migraciones_al_iniciar()
+    {
+        // sqlserver-init crea la base vacía; las tablas las crean las migraciones de EF Core (sesión 03).
+        var api = _compose.Services["beneficiarios-api"];
+
+        Assert.Equal("true", api.Environment["Persistence__ApplyMigrationsAtStartup"]);
+        Assert.Equal("service_completed_successfully", api.DependencyCondition("sqlserver-init"));
+    }
+
     [Theory]
     [InlineData("beneficiarios-api")]
     [InlineData("solicitudes-api")]

@@ -11,6 +11,7 @@ using SocialManagement.Beneficiarios.Infrastructure.ExternalServices.Aws;
 using SocialManagement.Beneficiarios.Infrastructure.Messaging;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence.Interceptors;
+using SocialManagement.Beneficiarios.Infrastructure.Repositories;
 
 namespace SocialManagement.Beneficiarios.Infrastructure.DependencyInjection;
 
@@ -64,6 +65,11 @@ public static class InfrastructureServiceCollectionExtensions
 
         // Unit of Work: la MISMA instancia del DbContext (scoped) que usan los repositorios en la petición.
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<BeneficiariosDbContext>());
+        services.AddScoped<IBeneficiarioRepository, BeneficiarioRepository>();
+
+        // Migraciones al iniciar (Persistence:ApplyMigrationsAtStartup). Ver DatabaseMigrationExtensions.
+        services.AddOptions<PersistenceOptions>()
+            .BindConfiguration(PersistenceOptions.SectionName);
 
         services.AddHealthChecks()
             .AddDbContextCheck<BeneficiariosDbContext>("sqlserver", tags: [ReadinessTag]);

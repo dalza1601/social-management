@@ -4,7 +4,7 @@ Núcleo del microservicio. No depende de ningún framework, ORM, API ni proveedo
 
 | Carpeta         | Contenido                                                                      |
 |-----------------|--------------------------------------------------------------------------------|
-| `Entities`      | `AuditableEntity`: clase base con `CreatedAtUtc`, `CreatedBy`, `UpdatedAtUtc`, `UpdatedBy` (los completa la infraestructura al guardar). `Beneficiario`: entidad auditable con identidad `Id` (Guid v7), invariantes y estado. Sin atributos de persistencia: su mapeo está en Infrastructure. |
+| `Entities`      | `AuditableEntity`: clase base con `CreatedAtUtc`, `CreatedBy`, `UpdatedAtUtc`, `UpdatedBy` (los completa la infraestructura al guardar). `Beneficiario`: entidad auditable con identidad `Id` entera (`int`, la asigna SQL Server al guardar), invariantes y estado. Sin atributos de persistencia: su mapeo está en Infrastructure. |
 | `ValueObjects`  | `DocumentoIdentidad`: tipo + número, validado e inmutable, igualdad por valor.  |
 | `Enums`         | `TipoDocumentoIdentidad`, `EstadoBeneficiario`.                                |
 | `Events`        | Eventos de dominio (aún vacía).                                                |

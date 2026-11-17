@@ -1,3 +1,4 @@
+using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Domain.Enums;
 
 namespace SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficiario;
@@ -7,4 +8,4 @@ public sealed record RegistrarBeneficiarioCommand(
     string Nombres,
     string Apellidos,
     TipoDocumentoIdentidad TipoDocumento,
-    string NumeroDocumento);
+    string NumeroDocumento) : IDatosPersonalesBeneficiario;

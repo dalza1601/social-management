@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de INTEGRACIÓN con SQL Server REAL: la API completa (WebApplicationFactory) contra una
+    base de datos temporal y única por clase de prueba, creada con las migraciones de EF Core y
+    eliminada al terminar.
+
+    Se activan con la variable de entorno SM_SQLSERVER_TESTS (cadena de conexión al SERVIDOR, sin
+    Database). Sin ella, las pruebas se marcan como omitidas (skipped). Ejemplos:
+      LocalDB (Windows):  Server=(localdb)\MSSQLLocalDB;Integrated Security=True;TrustServerCertificate=True
+      Docker / CI:        Server=localhost,1433;User Id=sa;Password=...;TrustServerCertificate=True
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Api\SocialManagement.Beneficiarios.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+</Project>

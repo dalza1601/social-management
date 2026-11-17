@@ -21,11 +21,29 @@ concurrency:
 jobs:
   # -------------------------------------------------------------------
   # Backend: compilación (advertencias = errores) y pruebas unitarias,
-  # de integración en memoria y validación estática de la infraestructura.
+  # de integración (en memoria y con SQL Server real) y validación estática de la infraestructura.
   # -------------------------------------------------------------------
   backend:
     name: Backend (.NET)
     runs-on: ubuntu-latest
+    # SQL Server real para las pruebas de integración de persistencia (sesión 03). Cada clase de
+    # prueba crea su propia base temporal con las migraciones y la elimina al terminar.
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: CiOnly_Str0ng_Passw0rd
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P CiOnly_Str0ng_Passw0rd -Q 'SELECT 1' -b"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # Contraseña efímera, solo válida dentro del contenedor de este job (no es un secreto real).
+      SM_SQLSERVER_TESTS: "Server=localhost,1433;User Id=sa;Password=CiOnly_Str0ng_Passw0rd;TrustServerCertificate=True"
     steps:
       - uses: actions/checkout@v7
 
@@ -39,8 +57,18 @@ jobs:
       - name: Compilar
         run: dotnet build SocialManagement.slnx --no-restore --configuration Release
 
-      - name: Probar
+      - name: Probar (incluye integración con SQL Server)
         run: dotnet test --solution SocialManagement.slnx --no-build --configuration Release
+
+      # Las migraciones deben estar al día con el modelo: falla si alguien cambió una entidad o
+      # configuración de EF Core sin generar la migración correspondiente.
+      - name: Migraciones de EF Core al día con el modelo
+        run: |
+          dotnet tool restore
+          dotnet ef migrations has-pending-model-changes \
+            --project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Infrastructure \
+            --startup-project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Api \
+            --configuration Release --no-build
 
       # Publica cada API (como el Dockerfile), la ejecuta en Staging y comprueba Swagger UI, sus
       # recursos estáticos y el documento OpenAPI; después lo valida con Redocly CLI.

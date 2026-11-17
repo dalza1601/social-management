@@ -116,6 +116,7 @@ dotnet test --project tests/unit/SocialManagement.Architecture.Tests
 | `tests/unit/SocialManagement.Beneficiarios.Application.UnitTests` | Unitarias: casos de uso con dobles de prueba (sesión 02) | No |
 | `tests/unit/SocialManagement.Beneficiarios.Infrastructure.UnitTests` | Unitarias: mapeo EF Core (`BeneficiarioConfiguration`) y script SQL, sin base de datos | No |
 | `tests/integration/SocialManagement.*.Api.IntegrationTests` | Integración en memoria: arranque, DI, endpoints, errores, validación de configuración | No |
+| `tests/integration/SocialManagement.Beneficiarios.SqlServer.IntegrationTests` | Integración con SQL Server **real**: CRUD HTTP de punta a punta, migraciones, índice único y auditoría (sesión 03) | No: basta LocalDB. Se activa con `SM_SQLSERVER_TESTS` |
 | `tests/integration/SocialManagement.Gateway.IntegrationTests` | Integración: rutas YARP contra servicios simulados | No |
 | `tests/environment/SocialManagement.LocalEnvironment.Tests` | Validación estática de `docker-compose.yml` (siempre) + contenedores en vivo (opcional) | Solo las pruebas en vivo |
 
@@ -129,6 +130,17 @@ $env:SM_ENVIRONMENT_TESTS = "true"     # SQL Server, RabbitMQ, APIs, Gateway, fr
 $env:SM_LOCALSTACK_TESTS  = "true"     # bucket S3 y cola SQS
 $env:SM_OLLAMA_TESTS      = "true"     # servidor Ollama
 dotnet test --project tests/environment/SocialManagement.LocalEnvironment.Tests
+```
+
+Pruebas de integración con SQL Server (cada clase crea una base temporal con las migraciones y la elimina al terminar):
+
+```powershell
+# LocalDB (incluido con Visual Studio; no necesita Docker)
+$env:SM_SQLSERVER_TESTS = "Server=(localdb)\MSSQLLocalDB;Integrated Security=True;TrustServerCertificate=True"
+# o el SQL Server de Docker Compose
+$env:SM_SQLSERVER_TESTS = "Server=localhost,14333;User Id=sa;Password=<clave del .env>;TrustServerCertificate=True"
+
+dotnet test --project tests/integration/SocialManagement.Beneficiarios.SqlServer.IntegrationTests
 ```
 
 Frontend:

@@ -17,7 +17,6 @@ public sealed class BeneficiarioTests
     {
         var beneficiario = Beneficiario.Registrar("  Ana   María ", "Quispe  Mamani", Documento, FechaRegistro);
 
-        Assert.NotEqual(Guid.Empty, beneficiario.Id);
         Assert.Equal("Ana María", beneficiario.Nombres);
         Assert.Equal("Quispe Mamani", beneficiario.Apellidos);
         Assert.Equal("Ana María Quispe Mamani", beneficiario.NombreCompleto);
@@ -28,13 +27,21 @@ public sealed class BeneficiarioTests
     }
 
     [Fact]
-    public void Cada_registro_recibe_un_Id_distinto_de_version_7()
+    public void Un_beneficiario_nuevo_no_tiene_Id_hasta_guardarse()
     {
-        var primero = Beneficiario.Registrar("Ana", "Quispe", Documento, FechaRegistro);
-        var segundo = Beneficiario.Registrar("Ana", "Quispe", Documento, FechaRegistro);
+        // El Id es un entero que asigna la base de datos (IDENTITY) al guardar; el dominio no lo inventa.
+        var beneficiario = Beneficiario.Registrar("Ana", "Quispe", Documento, FechaRegistro);
 
-        Assert.NotEqual(primero.Id, segundo.Id);
-        Assert.Equal(7, primero.Id.Version);
+        Assert.Equal(0, beneficiario.Id);
+    }
+
+    [Fact]
+    public void El_Id_es_entero_y_no_se_puede_asignar_desde_fuera()
+    {
+        var id = typeof(Beneficiario).GetProperty(nameof(Beneficiario.Id))!;
+
+        Assert.Equal(typeof(int), id.PropertyType);
+        Assert.False(id.SetMethod!.IsPublic);   // solo EF Core lo escribe después del INSERT
     }
 
     [Fact]

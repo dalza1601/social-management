@@ -7,7 +7,7 @@ namespace SocialManagement.Beneficiarios.Application.DTOs;
 /// quien la recibe no puede modificar la entidad ni saltarse sus invariantes.
 /// </summary>
 public sealed record BeneficiarioDto(
-    Guid Id,
+    int Id,
     string Nombres,
     string Apellidos,
     string NombreCompleto,

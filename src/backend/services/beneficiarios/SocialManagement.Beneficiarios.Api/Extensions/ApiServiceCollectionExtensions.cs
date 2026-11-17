@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SocialManagement.Beneficiarios.Api.Configuration;
@@ -34,6 +35,8 @@ public static class ApiServiceCollectionExtensions
 
         // Los errores de validación del modelo (400) de los controllers usan el formato ApiResponse.
         services.AddControllers()
+            // Enums como texto en JSON y en OpenAPI: "tipoDocumento": "Dni" (no 1).
+            .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .ConfigureApiBehaviorOptions(options =>
                 options.InvalidModelStateResponseFactory = context =>
                 {

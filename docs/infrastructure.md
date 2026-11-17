@@ -105,25 +105,32 @@ Invoke-Expression "$compose config"                   # ver el compose con las v
 
 Conexión desde SSMS o Azure Data Studio: servidor `localhost,14333`, usuario `sa`, "Trust server certificate".
 
-### Migraciones de EF Core (cuando existan entidades)
+### Migraciones de EF Core
 
 Cada servicio tiene su propio `DbContext` y su propio historial de migraciones (`<esquema>.__EFMigrationsHistory`).
+Beneficiarios ya tiene la migración `InicialBeneficiarios` (sesión 03); guía completa en
+[sessions/session-03.md](sessions/session-03.md#migraciones).
 
 ```powershell
-# 1. Herramienta (una vez)
-dotnet tool install --global dotnet-ef
+# 1. Herramienta: versión fijada en dotnet-tools.json (raíz del repositorio)
+dotnet tool restore
 
 # 2. Crear una migración en el proyecto Infrastructure, usando la API como proyecto de inicio
-dotnet ef migrations add InitialCreate `
+dotnet ef migrations add <NombreDescriptivo> `
   --project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Infrastructure `
   --startup-project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Api `
   --output-dir Persistence/Migrations
 
-# 3. Aplicarla a la base local (usa la cadena de conexión de user-secrets)
+# 3. Aplicarla. La cadena la toma BeneficiariosDesignTimeDbContextFactory: variable SM_BENEFICIARIOS_DB
+#    o, si no existe, LocalDB: Server=(localdb)\MSSQLLocalDB;Database=SocialManagement_Beneficiarios
+$env:SM_BENEFICIARIOS_DB = "Server=localhost,14333;Database=SocialManagement_Beneficiarios;User Id=sa;Password=<clave del .env>;TrustServerCertificate=True"   # SQL Server de Docker
 dotnet ef database update `
   --project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Infrastructure `
   --startup-project src/backend/services/beneficiarios/SocialManagement.Beneficiarios.Api
 ```
+
+En Docker Compose no hace falta el paso 3: `beneficiarios-api` aplica las migraciones pendientes al iniciar
+(`Persistence__ApplyMigrationsAtStartup=true`).
 
 Antes de la primera migración: agrega el `DbSet` al `DbContext`, crea la clase `IEntityTypeConfiguration<T>`
 en `Persistence/Configurations` (Fluent API: clave primaria, columnas, índices y relaciones). El `DbContext` las

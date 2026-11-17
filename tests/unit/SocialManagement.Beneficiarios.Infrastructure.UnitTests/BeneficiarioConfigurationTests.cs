@@ -30,13 +30,15 @@ public sealed class BeneficiarioConfigurationTests : IDisposable
     }
 
     [Fact]
-    public void Id_es_la_clave_primaria_y_la_genera_el_dominio()
+    public void Id_es_la_clave_primaria_entera_y_la_genera_SQL_Server()
     {
         var key = Entidad.FindPrimaryKey()!;
 
         var property = Assert.Single(key.Properties);
         Assert.Equal(nameof(Beneficiario.Id), property.Name);
-        Assert.Equal(ValueGenerated.Never, property.ValueGenerated);
+        Assert.Equal(typeof(int), property.ClrType);
+        Assert.Equal(ValueGenerated.OnAdd, property.ValueGenerated);
+        Assert.Equal(SqlServerValueGenerationStrategy.IdentityColumn, property.GetValueGenerationStrategy());
     }
 
     [Theory]
@@ -107,7 +109,7 @@ public sealed class BeneficiarioConfigurationTests : IDisposable
         var script = _context.Database.GenerateCreateScript();
 
         Assert.Contains("CREATE TABLE [beneficiarios].[Beneficiarios]", script, StringComparison.Ordinal);
-        Assert.Contains("[Id] uniqueidentifier NOT NULL", script, StringComparison.Ordinal);
+        Assert.Contains("[Id] int NOT NULL IDENTITY", script, StringComparison.Ordinal);
         Assert.Contains("[Nombres] nvarchar(100) NOT NULL", script, StringComparison.Ordinal);
         Assert.Contains("[DocumentoNumero] nvarchar(12) NOT NULL", script, StringComparison.Ordinal);
         Assert.Contains("[CreatedAtUtc] datetime2 NOT NULL", script, StringComparison.Ordinal);

@@ -3,15 +3,15 @@
 **Sistema de Gestión de Beneficiarios y Solicitudes Sociales**: proyecto del curso de
 *Especialización en Arquitectura de Microservicios con .NET 10, Angular, IA Generativa y DevOps*.
 
-Este repositorio contiene la **Fase 0 (Foundation)**: el esqueleto arquitectónico y la
-infraestructura local sobre los que se construirán los seis módulos del curso.
-**Todavía no hay funcionalidades de negocio**: no hay entidades, CRUD ni reglas de negocio.
+Sobre la **Fase 0 (Foundation)** (esqueleto arquitectónico e infraestructura local) se construyen, sesión
+a sesión, los seis módulos del curso. Estado actual: **sesión 03**, CRUD de beneficiarios con EF Core 10 y
+SQL Server (`/api/v1/beneficiarios`). Ver la [tabla de sesiones](#sesiones-del-curso).
 
 ```mermaid
 flowchart LR
     U([Navegador]) -->|":4200"| FE["Frontend Angular<br/>nginx"]
     FE -->|"/gateway/*"| GW["API Gateway<br/>YARP :8080"]
-    GW -->|"/api/beneficiarios/*"| BA["Beneficiarios API"]
+    GW -->|"/api/beneficiarios/* · /api/v1/beneficiarios"| BA["Beneficiarios API"]
     GW -->|"/api/solicitudes/*"| SA["Solicitudes API"]
     BA --> DB1[("SocialManagement_<br/>Beneficiarios")]
     SA --> DB2[("SocialManagement_<br/>Solicitudes")]
@@ -46,7 +46,8 @@ Abre <http://localhost:4200> y entra en **Estado del sistema**.
 |---------------------|-----------------------------------------------|
 | Frontend Angular    | <http://localhost:4200>                       |
 | API Gateway         | <http://localhost:8080/health/ready>          |
-| Beneficiarios API   | <http://localhost:8081/version> · [Swagger](http://localhost:8081/swagger) · [OpenAPI](http://localhost:8081/openapi/v1.json) · [demo](http://localhost:8081/api/demo/status) |
+| Beneficiarios API   | <http://localhost:8081/version> · [Swagger](http://localhost:8081/swagger) · [OpenAPI](http://localhost:8081/openapi/v1.json) · [demo](http://localhost:8081/api/demo/status) · [CRUD](http://localhost:8081/api/v1/beneficiarios) |
+| CRUD vía Gateway    | <http://localhost:8080/api/v1/beneficiarios>  |
 | Solicitudes API     | <http://localhost:8082/version> · [Swagger](http://localhost:8082/swagger) · [OpenAPI](http://localhost:8082/openapi/v1.json) |
 | Swagger vía Gateway | <http://localhost:8080/api/beneficiarios/swagger> · <http://localhost:8080/api/solicitudes/swagger> |
 | RabbitMQ (consola)  | <http://localhost:15672> (usuario y clave en `.env`) |
@@ -109,6 +110,7 @@ social-management/
 | Fase 0 | Foundation | Clean Architecture, Gateway, Angular e infraestructura local |
 | [01](docs/sessions/session-01.md) | Primera API con .NET 10 | `GET /api/demo/status` en Beneficiarios, pruebas, OpenAPI y prompts de IA |
 | [02](docs/sessions/session-02.md) | Clean Architecture | Entidad `Beneficiario`, value object `DocumentoIdentidad`, `IBeneficiarioRepository`, casos de uso registrar/consultar y SOLID |
+| [03](docs/sessions/session-03.md) | CRUD de beneficiarios | EF Core 10 + SQL Server, migración `InicialBeneficiarios`, `/api/v1/beneficiarios` (201/200/400/404/409), pruebas de integración con SQL Server real |
 
 ## Documentación
 

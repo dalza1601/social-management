@@ -16,6 +16,7 @@ namespace SocialManagement.Beneficiarios.Api.Middleware;
 /// <remarks>
 /// | Excepción                              | HTTP | Contenido                         |
 /// | ValidationException (FluentValidation) | 400  | Errores por campo                 |
+/// | DomainConflictException                | 409  | Mensaje del conflicto             |
 /// | DomainException                        | 422  | Mensaje de la regla incumplida    |
 /// | Cualquier otra                         | 500  | Sin detalles internos             |
 /// Formato según el origen:
@@ -36,6 +37,7 @@ internal sealed class GlobalExceptionHandler(
         var (statusCode, title) = exception switch
         {
             ValidationException => (StatusCodes.Status400BadRequest, ValidationTitle),
+            DomainConflictException => (StatusCodes.Status409Conflict, "Conflicto con un registro existente"),
             DomainException => (StatusCodes.Status422UnprocessableEntity, "Regla de dominio incumplida"),
             _ => (StatusCodes.Status500InternalServerError, "Error interno del servidor"),
         };

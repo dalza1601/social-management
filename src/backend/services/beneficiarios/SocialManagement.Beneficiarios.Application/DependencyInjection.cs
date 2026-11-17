@@ -1,5 +1,10 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using SocialManagement.Beneficiarios.Application.Features.ActualizarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Features.DesactivarBeneficiario;
+using SocialManagement.Beneficiarios.Application.Features.ListarBeneficiarios;
+using SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficiario;
 
 namespace SocialManagement.Beneficiarios.Application;
 
@@ -9,22 +14,23 @@ namespace SocialManagement.Beneficiarios.Application;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registra los servicios de aplicación (casos de uso, validadores y behaviors).
+    /// Registra los servicios de aplicación: validadores (FluentValidation) y casos de uso.
     /// </summary>
     /// <remarks>
-    /// - Validadores (FluentValidation): todos los AbstractValidator&lt;T&gt; de este ensamblado, como IValidator&lt;T&gt;.
-    /// - Casos de uso: RegistrarBeneficiarioHandler y ConsultarBeneficiarioHandler existen, pero TODAVÍA NO se
-    ///   registran. Necesitan un IBeneficiarioRepository y aún no hay ninguna implementación; con
-    ///   ValidateOnBuild = true (Program.cs) la API no arrancaría. Se registrarán aquí junto con el repositorio
-    ///   de EF Core en la sesión de persistencia:
-    ///     services.AddScoped&lt;RegistrarBeneficiarioHandler&gt;();
-    ///     services.AddScoped&lt;ConsultarBeneficiarioHandler&gt;();
+    /// Los casos de uso dependen de IBeneficiarioRepository e IUnitOfWork, que registra Infrastructure
+    /// (AddInfrastructure). Con ValidateOnBuild = true, si faltara alguno la API no arrancaría.
     /// </remarks>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
+
+        services.AddScoped<RegistrarBeneficiarioHandler>();
+        services.AddScoped<ConsultarBeneficiarioHandler>();
+        services.AddScoped<ListarBeneficiariosHandler>();
+        services.AddScoped<ActualizarBeneficiarioHandler>();
+        services.AddScoped<DesactivarBeneficiarioHandler>();
 
         return services;
     }

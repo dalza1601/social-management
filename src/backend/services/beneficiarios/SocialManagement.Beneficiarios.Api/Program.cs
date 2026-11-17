@@ -3,6 +3,7 @@ using SocialManagement.Beneficiarios.Api.Endpoints;
 using SocialManagement.Beneficiarios.Api.Extensions;
 using SocialManagement.Beneficiarios.Application;
 using SocialManagement.Beneficiarios.Infrastructure.DependencyInjection;
+using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,5 +42,8 @@ app.MapGet(GetDemoStatusEndpoint.Route, GetDemoStatusEndpoint.Handle)
         "Endpoint didáctico de la sesión 01. Devuelve el nombre del servicio, su versión, " +
         "la fecha y hora UTC del servidor y el estado de ejecución (Running o Stopping).")
     .Produces<DemoStatusResponse>(StatusCodes.Status503ServiceUnavailable);
+
+// Aplica las migraciones de EF Core pendientes si Persistence:ApplyMigrationsAtStartup = true (Docker Compose).
+await app.Services.ApplyDatabaseMigrationsAsync();
 
 app.Run();

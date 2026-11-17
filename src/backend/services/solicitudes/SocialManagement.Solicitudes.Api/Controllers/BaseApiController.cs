@@ -23,9 +23,9 @@ namespace SocialManagement.Solicitudes.Api.Controllers;
 /// <code>
 /// public sealed class SolicitudesController : BaseApiController
 /// {
-///     [HttpGet("{id:guid}")]
+///     [HttpGet("{id:int}")]
 ///     [ProducesResponseType&lt;ApiResponse&lt;SolicitudDto&gt;&gt;(StatusCodes.Status200OK)]
-///     public async Task&lt;ActionResult&lt;ApiResponse&lt;SolicitudDto&gt;&gt;&gt; ObtenerPorId(Guid id, CancellationToken ct)
+///     public async Task&lt;ActionResult&lt;ApiResponse&lt;SolicitudDto&gt;&gt;&gt; ObtenerPorId(int id, CancellationToken ct)
 ///     {
 ///         var solicitud = await UseCase&lt;ConsultarSolicitudHandler&gt;().HandleAsync(new(id), ct);
 ///         return ApiOkOrNotFound(solicitud, $"No existe el solicitud {id}.");

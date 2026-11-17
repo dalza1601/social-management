@@ -23,9 +23,9 @@ namespace SocialManagement.Beneficiarios.Api.Controllers;
 /// <code>
 /// public sealed class BeneficiariosController : BaseApiController
 /// {
-///     [HttpGet("{id:guid}")]
+///     [HttpGet("{id:int}")]
 ///     [ProducesResponseType&lt;ApiResponse&lt;BeneficiarioDto&gt;&gt;(StatusCodes.Status200OK)]
-///     public async Task&lt;ActionResult&lt;ApiResponse&lt;BeneficiarioDto&gt;&gt;&gt; ObtenerPorId(Guid id, CancellationToken ct)
+///     public async Task&lt;ActionResult&lt;ApiResponse&lt;BeneficiarioDto&gt;&gt;&gt; ObtenerPorId(int id, CancellationToken ct)
 ///     {
 ///         var beneficiario = await UseCase&lt;ConsultarBeneficiarioHandler&gt;().HandleAsync(new(id), ct);
 ///         return ApiOkOrNotFound(beneficiario, $"No existe el beneficiario {id}.");

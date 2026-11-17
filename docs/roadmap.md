@@ -15,9 +15,9 @@ La **Fase 0** entrega la base técnica. Los módulos siguientes construyen sobre
 
 ## Módulo 1: Dominio y persistencia: Beneficiarios
 
-- Entidades, objetos de valor y reglas del dominio de Beneficiarios.
-- Configuraciones de EF Core, primera migración y repositorios.
-- Endpoints REST y DTOs; validación de entrada.
+- ✅ Entidades, objetos de valor y reglas del dominio de Beneficiarios ([sesión 02](sessions/session-02.md)).
+- ✅ Configuraciones de EF Core, primera migración y repositorios ([sesión 03](sessions/session-03.md)).
+- ✅ Endpoints REST y DTOs; validación de entrada ([sesión 03](sessions/session-03.md)).
 - Pantallas Angular de consulta y registro.
 
 ## Módulo 2: Solicitudes y CQRS

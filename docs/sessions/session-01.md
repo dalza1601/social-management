@@ -87,9 +87,9 @@ la ruta, el formato de respuesta y las dependencias comunes. Así un controller 
 // Ejemplo de un controller futuro: GET /api/v1/beneficiarios/{id}
 public sealed class BeneficiariosController : BaseApiController
 {
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id:int}")]
     [ProducesResponseType<ApiResponse<BeneficiarioDto>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<BeneficiarioDto>>> ObtenerPorId(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<BeneficiarioDto>>> ObtenerPorId(int id, CancellationToken ct)
     {
         var beneficiario = await UseCase<ConsultarBeneficiarioHandler>().HandleAsync(new(id), ct);
         return ApiOkOrNotFound(beneficiario, $"No existe el beneficiario {id}.");

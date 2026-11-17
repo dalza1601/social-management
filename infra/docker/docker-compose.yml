@@ -149,6 +149,8 @@ services:
     environment:
       <<: *dotnet-service-environment
       ConnectionStrings__BeneficiariosDb: "Server=sqlserver,1433;Database=SocialManagement_Beneficiarios;User Id=sa;Password=${MSSQL_SA_PASSWORD:-};TrustServerCertificate=True;Connect Timeout=5"
+      # Aplica las migraciones de EF Core pendientes al iniciar (tablas del esquema "beneficiarios").
+      Persistence__ApplyMigrationsAtStartup: "true"
       RabbitMq__ClientProvidedName: beneficiarios-api
     ports:
       - "127.0.0.1:${BENEFICIARIOS_API_PORT:-8081}:8080"

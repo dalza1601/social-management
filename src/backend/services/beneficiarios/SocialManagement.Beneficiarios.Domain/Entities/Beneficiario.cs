@@ -10,12 +10,13 @@ namespace SocialManagement.Beneficiarios.Domain.Entities;
 /// </summary>
 /// <remarks>
 /// Invariantes (siempre se cumplen para cualquier instancia):
-/// - Id distinto de Guid.Empty.
 /// - Nombres y apellidos obligatorios, de máximo 100 caracteres, solo con letras, espacios,
 ///   apóstrofos, guiones y puntos.
 /// - Documento de identidad válido (garantizado por el Value Object).
 /// - Fecha de registro informada y en UTC.
 /// El constructor es privado: la única forma de crear un beneficiario es <see cref="Registrar"/>.
+/// Identidad: <see cref="Id"/> es un entero que asigna la base de datos al guardar (columna IDENTITY);
+/// vale 0 mientras el beneficiario no se haya guardado.
 /// El dominio no sabe cómo se guarda: la clave primaria, las columnas y los índices se configuran en
 /// Infrastructure (Persistence/Configurations/BeneficiarioConfiguration.cs).
 /// </remarks>
@@ -34,9 +35,8 @@ public sealed class Beneficiario : AuditableEntity
         Documento = null!;
     }
 
-    private Beneficiario(Guid id, string nombres, string apellidos, DocumentoIdentidad documento, DateTimeOffset fechaRegistroUtc)
+    private Beneficiario(string nombres, string apellidos, DocumentoIdentidad documento, DateTimeOffset fechaRegistroUtc)
     {
-        Id = id;
         Nombres = nombres;
         Apellidos = apellidos;
         Documento = documento;
@@ -44,16 +44,19 @@ public sealed class Beneficiario : AuditableEntity
         Estado = EstadoBeneficiario.Activo;
     }
 
-    /// <summary>Identidad del beneficiario (Guid v7 generado al registrar).</summary>
-    public Guid Id { get; }
+    /// <summary>
+    /// Identidad del beneficiario: entero autoincremental asignado por la base de datos al guardar.
+    /// 0 = todavía no guardado. El setter es privado: solo EF Core lo escribe (después del INSERT).
+    /// </summary>
+    public int Id { get; private set; }
 
-    public string Nombres { get; }
+    public string Nombres { get; private set; }
 
-    public string Apellidos { get; }
+    public string Apellidos { get; private set; }
 
     public string NombreCompleto => $"{Nombres} {Apellidos}";
 
-    public DocumentoIdentidad Documento { get; }
+    public DocumentoIdentidad Documento { get; private set; }
 
     public DateTimeOffset FechaRegistroUtc { get; }
 
@@ -82,13 +85,33 @@ public sealed class Beneficiario : AuditableEntity
 
         var fechaRegistroUtc = fechaRegistro.ToUniversalTime();
 
+        // Sin Id: lo asigna la base de datos al guardar.
         return new Beneficiario(
-            // Guid versión 7: ordenable por fecha (mejor rendimiento en índices de base de datos).
-            Guid.CreateVersion7(fechaRegistroUtc),
             ValidarNombre(nombres, "nombres"),
             ValidarNombre(apellidos, "apellidos"),
             documento,
             fechaRegistroUtc);
+    }
+
+    /// <summary>
+    /// Corrige los datos personales del beneficiario. Aplica las mismas invariantes que <see cref="Registrar"/>.
+    /// La identidad (<see cref="Id"/>), la fecha de registro y el estado no cambian.
+    /// </summary>
+    /// <exception cref="BeneficiarioInvalidoException">Si algún dato incumple una invariante.</exception>
+    public void ActualizarDatos(string? nombres, string? apellidos, DocumentoIdentidad? documento)
+    {
+        if (documento is null)
+        {
+            throw new BeneficiarioInvalidoException("El documento de identidad es obligatorio.");
+        }
+
+        // Se validan todos los datos ANTES de modificar: o cambia todo, o no cambia nada.
+        var nombresValidos = ValidarNombre(nombres, "nombres");
+        var apellidosValidos = ValidarNombre(apellidos, "apellidos");
+
+        Nombres = nombresValidos;
+        Apellidos = apellidosValidos;
+        Documento = documento;
     }
 
     /// <summary>Marca al beneficiario como inactivo. Si ya lo está, no cambia nada.</summary>

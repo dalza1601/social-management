@@ -46,6 +46,7 @@ public sealed class RegistrarBeneficiarioHandler(
         await repository.AgregarAsync(beneficiario, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // 5. El DTO se arma DESPUÉS de guardar: el Id (IDENTITY) lo asigna la base de datos en el INSERT.
         return BeneficiarioDto.Desde(beneficiario);
     }
 }

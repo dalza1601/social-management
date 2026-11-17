@@ -83,7 +83,7 @@ Las pruebas de arquitectura (`tests/unit/SocialManagement.Architecture.Tests`) v
 classDiagram
     class Beneficiario {
         <<entidad>>
-        +Guid Id
+        +int Id
         +string Nombres
         +string Apellidos
         +string NombreCompleto
@@ -142,7 +142,7 @@ internal sealed class BeneficiarioConfiguration : IEntityTypeConfiguration<Benef
     {
         builder.ToTable("Beneficiarios");                                   // esquema "beneficiarios"
         builder.HasKey(b => b.Id);                                          // clave primaria
-        builder.Property(b => b.Id).ValueGeneratedNever();                  // el Guid v7 lo genera el dominio
+        builder.Property(b => b.Id).UseIdentityColumn();                    // int IDENTITY(1,1): lo genera SQL Server
         builder.Property(b => b.Nombres).IsRequired().HasMaxLength(Beneficiario.LongitudMaximaNombre);
         builder.Property(b => b.Estado).IsRequired().HasConversion<string>().HasMaxLength(20);
         builder.Ignore(b => b.NombreCompleto);                              // calculada: no es columna
@@ -161,7 +161,7 @@ Tabla resultante (script generado por EF Core a partir de esa configuración):
 
 ```sql
 CREATE TABLE [beneficiarios].[Beneficiarios] (
-    [Id] uniqueidentifier NOT NULL,
+    [Id] int NOT NULL IDENTITY,
     [Nombres] nvarchar(100) NOT NULL,
     [Apellidos] nvarchar(100) NOT NULL,
     [DocumentoTipo] nvarchar(20) NOT NULL,
@@ -342,7 +342,7 @@ flowchart LR
 | Handlers como **clases concretas**, sin `IHandler<TIn, TOut>` ni MediatR | Con dos casos de uso, una abstracción genérica no aporta valor y complica la explicación. |
 | Sin clase base `Entity` | Solo hay una entidad. Se extraerá cuando haya una segunda y la duplicación sea real. |
 | `BeneficiarioDto` en lugar de devolver la entidad | Quien llama no puede modificar la entidad ni saltarse sus invariantes. |
-| `Guid.CreateVersion7` para el `Id` | Los Guid v7 se ordenan por fecha: mejor rendimiento en los índices de SQL Server más adelante. |
+| `Id` **entero** (`int`) generado por SQL Server (`IDENTITY`) | Regla del proyecto: no se usa GUID. El Id es simple de leer, de escribir en una URL (`/api/v1/beneficiarios/25`) y de indexar. El dominio no lo inventa: vale 0 hasta que el beneficiario se guarda. |
 | Los handlers **aún no se registran en DI** | No existe implementación de `IBeneficiarioRepository`. Con `ValidateOnBuild = true` (sesión 01) la API no arrancaría. Se registrarán junto con el repositorio de EF Core. |
 
 ---
@@ -390,7 +390,7 @@ Otro ejemplo: `BeneficiarioInvalidoException`, `DocumentoIdentidadInvalidoExcept
 ```csharp
 public interface IBeneficiarioRepository
 {
-    Task<Beneficiario?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Beneficiario?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken = default);
     Task<bool> ExisteConDocumentoAsync(DocumentoIdentidad documento, CancellationToken cancellationToken = default);
     Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default);
 }

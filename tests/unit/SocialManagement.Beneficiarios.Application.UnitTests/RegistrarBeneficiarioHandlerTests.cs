@@ -40,6 +40,17 @@ public sealed class RegistrarBeneficiarioHandlerTests
     }
 
     [Fact]
+    public async Task Devuelve_el_Id_entero_asignado_al_guardar()
+    {
+        var primero = await _handler.HandleAsync(ComandoValido("12345678"), TestContext.Current.CancellationToken);
+        var segundo = await _handler.HandleAsync(ComandoValido("87654321"), TestContext.Current.CancellationToken);
+
+        // El repositorio falso simula la columna IDENTITY de SQL Server: 1, 2, 3...
+        Assert.Equal(1, primero.Id);
+        Assert.Equal(2, segundo.Id);
+    }
+
+    [Fact]
     public async Task Confirma_los_cambios_una_sola_vez_con_la_unidad_de_trabajo()
     {
         await _handler.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);

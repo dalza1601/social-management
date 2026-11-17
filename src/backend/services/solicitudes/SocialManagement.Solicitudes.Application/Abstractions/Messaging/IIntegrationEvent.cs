@@ -10,8 +10,11 @@ namespace SocialManagement.Solicitudes.Application.Abstractions.Messaging;
 /// </remarks>
 public interface IIntegrationEvent
 {
-    /// <summary>Identificador único del mensaje (permite idempotencia en el consumidor).</summary>
-    Guid EventId { get; }
+    /// <summary>
+    /// Identificador único del mensaje (permite idempotencia en el consumidor). Entero que asigna el emisor,
+    /// por ejemplo la columna IDENTITY de su tabla de mensajes salientes (outbox). El proyecto no usa GUID.
+    /// </summary>
+    long EventId { get; }
 
     /// <summary>Momento en que ocurrió el hecho, en UTC.</summary>
     DateTimeOffset OccurredOnUtc { get; }
