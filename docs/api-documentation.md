@@ -30,9 +30,11 @@ documentación de cada servicio se consulta a través de su prefijo.
   (`[ProducesResponseType]`).
 - Resúmenes y descripciones de los **comentarios XML** (`///`) de los controllers (`GenerateDocumentationFile`).
 - El campo `servers` con la **URL pública real** (esquema, dominio y prefijo del Gateway).
-- Esquema de seguridad **Bearer (JWT)** y botón **Authorize** en Swagger UI, **solo cuando el servicio registre
-  autenticación Bearer** (módulo de seguridad). Las operaciones con `[Authorize]` mostrarán el candado y la respuesta 401;
-  las públicas no. Hoy no hay autenticación, así que el documento no anuncia ningún esquema.
+- Esquema de seguridad **Bearer (JWT)** y botón **Authorize** en Swagger UI, **solo cuando el servicio registra
+  autenticación Bearer**. Desde la sesión 04 la API de **Beneficiarios** lo hace: sus operaciones con `[Authorize]` muestran
+  el candado, las respuestas 401 y 403 y los **roles permitidos** en la descripción; los endpoints públicos (`/version`,
+  `/api/demo/status`, `/api/auth/dev-token`) no. Solicitudes todavía no tiene autenticación y no anuncia ningún esquema.
+  Cómo obtener un token y usarlo en Swagger: [security.md](security.md).
 
 ## Funcionamiento detrás del Gateway, ingress o balanceador
 
@@ -103,7 +105,8 @@ ForwardedHeaders__KnownNetworks__0=10.20.0.0/16
 - Con credenciales configuradas, `/swagger/*` y `/openapi/*` exigen **HTTP Basic** (comparación en tiempo constante).
   El resto de endpoints no cambia. HTTP Basic solo es seguro con **HTTPS** extremo a extremo hasta el Gateway.
 - Los intentos con credenciales inválidas se registran en el log con la IP de origen.
-- Cuando llegue JWT (módulo de seguridad), esta protección podrá reemplazarse por una política de autorización
+- Esta protección es **independiente de JWT** (sesión 04): HTTP Basic protege solo la documentación; los tokens JWT
+  protegen los endpoints de negocio. Más adelante podría reemplazarse por una política de autorización
   (`RequireAuthorization`) sobre las rutas de documentación.
 
 ## Integración continua (GitHub Actions)
@@ -132,7 +135,7 @@ SKIP_OPENAPI_LINT=1 bash scripts/ci/verify-api-docs.sh published artifacts/opena
 | Swagger UI publicado, redirección y URL **relativa** del documento | `*.Api.IntegrationTests/ApiDocumentationTests` |
 | Documento válido (leído con `Microsoft.OpenApi`), título, descripción, versión, tags, esquemas y comentarios XML | ídem |
 | Detrás del Gateway: `servers = https://dominio/api/<servicio>`; un proxy **no confiable** no puede falsearlo | ídem |
-| Bearer: esquema y botón Authorize solo si existe autenticación; seguridad solo en operaciones `[Authorize]` | ídem |
+| Bearer: esquema y botón Authorize en Beneficiarios; candado, 401, 403 y roles solo en operaciones con política; endpoints públicos sin candado; `/api/auth/dev-token` ausente fuera de Development | ídem |
 | Deshabilitada, Staging, Production por defecto y Production sin credenciales (no arranca) | ídem |
 | HTTP Basic: 401 sin credenciales o con credenciales incorrectas, 200 con las correctas; el resto de endpoints sin cambios | ídem |
 | El Gateway envía `X-Forwarded-Prefix`, `Host` y `Proto` | `SocialManagement.Gateway.IntegrationTests` |

@@ -1,8 +1,8 @@
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using SocialManagement.Beneficiarios.Api.Configuration;
+using SocialManagement.Beneficiarios.Api.Security;
 
 namespace SocialManagement.Beneficiarios.Api.Middleware;
 
@@ -12,8 +12,8 @@ namespace SocialManagement.Beneficiarios.Api.Middleware;
 /// </summary>
 /// <remarks>
 /// HTTP Basic solo es seguro sobre HTTPS: en ambientes desplegados el Gateway o el ingress
-/// deben terminar TLS. Cuando el proyecto incorpore JWT (módulo de seguridad), esta protección
-/// podrá reemplazarse por una política de autorización.
+/// deben terminar TLS. Es independiente de JWT (sesión 04): los tokens protegen los endpoints de negocio;
+/// esta clave protege solo la documentación.
 /// </remarks>
 internal sealed class ApiDocumentationAccessMiddleware(
     RequestDelegate next,
@@ -34,8 +34,8 @@ internal sealed class ApiDocumentationAccessMiddleware(
 
         var header = context.Request.Headers.Authorization.ToString();
         if (TryReadBasicCredentials(header, out var userName, out var password)
-            && FixedTimeEquals(userName, settings.Access.UserName!)
-            && FixedTimeEquals(password, settings.Access.Password!))
+            && SecretComparer.FixedTimeEquals(userName, settings.Access.UserName!)
+            && SecretComparer.FixedTimeEquals(password, settings.Access.Password!))
         {
             await next(context);
             return;
@@ -84,10 +84,4 @@ internal sealed class ApiDocumentationAccessMiddleware(
             return false;
         }
     }
-
-    // Compara resúmenes SHA-256 en tiempo constante: no revela por tiempos ni la longitud ni el contenido.
-    private static bool FixedTimeEquals(string provided, string expected) =>
-        CryptographicOperations.FixedTimeEquals(
-            SHA256.HashData(Encoding.UTF8.GetBytes(provided)),
-            SHA256.HashData(Encoding.UTF8.GetBytes(expected)));
 }

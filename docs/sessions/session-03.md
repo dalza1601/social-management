@@ -344,7 +344,7 @@ Revisa siempre lo que genera la IA: es frecuente que proponga `[Key]` en la enti
 |------|--------|
 | **Carrera entre dos registros simultáneos** con el mismo documento | El caso de uso comprueba antes de insertar. Si dos peticiones pasan la comprobación a la vez, el índice único rechaza la segunda (`DbUpdateException`, probado), pero hoy responde **500**. Pendiente: traducir esa violación de índice a 409 en Infrastructure. |
 | **Concurrencia optimista** (dos usuarios editan el mismo registro) | Pendiente: columna `rowversion` + `DbUpdateConcurrencyException` → 409. |
-| **Usuario de auditoría** (`CreatedBy`, `UpdatedBy`) | Se guarda `null` hasta el módulo de seguridad (usuario autenticado). |
+| **Usuario de auditoría** (`CreatedBy`, `UpdatedBy`) | Se guardaba `null` hasta el módulo de seguridad. **Resuelto en la [sesión 04](session-04.md)**: se guarda el usuario del token JWT. |
 | **Eliminación física** | No existe a propósito: la baja es lógica (`PATCH .../desactivar`). |
 
 ---

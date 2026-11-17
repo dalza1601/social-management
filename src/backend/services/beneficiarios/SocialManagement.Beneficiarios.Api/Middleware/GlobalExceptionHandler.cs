@@ -1,7 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using SocialManagement.Beneficiarios.Api.Contracts;
 using SocialManagement.Beneficiarios.Api.Controllers;
 using SocialManagement.Beneficiarios.Api.Extensions;
@@ -54,7 +53,7 @@ internal sealed class GlobalExceptionHandler(
         var errors = ToApiErrors(exception, statusCode);
         httpContext.Response.StatusCode = statusCode;
 
-        if (UsesApiResponseFormat(httpContext))
+        if (httpContext.UsesApiResponseFormat())
         {
             await httpContext.Response.WriteAsJsonAsync(
                 ApiResponse<object>.Fail(title, errors, httpContext.GetTraceId()),
@@ -98,14 +97,4 @@ internal sealed class GlobalExceptionHandler(
             Detail = statusCode < StatusCodes.Status500InternalServerError ? exception.Message : null,
         },
     };
-
-    /// <summary>¿La excepción ocurrió en una acción de un controller que hereda de BaseApiController?</summary>
-    private static bool UsesApiResponseFormat(HttpContext httpContext)
-    {
-        // El middleware de excepciones limpia el endpoint actual; el original se conserva en IExceptionHandlerFeature.
-        var endpoint = httpContext.Features.Get<IExceptionHandlerFeature>()?.Endpoint ?? httpContext.GetEndpoint();
-        var action = endpoint?.Metadata.GetMetadata<ControllerActionDescriptor>();
-
-        return action is not null && action.ControllerTypeInfo.IsSubclassOf(typeof(BaseApiController));
-    }
 }

@@ -42,6 +42,22 @@ public sealed class GatewayRoutingTests(GatewayFixture fixture) : IClassFixture<
     }
 
     [Theory]
+    [InlineData("/api/v1/beneficiarios/25")]
+    [InlineData("/api/beneficiarios/version")]
+    public async Task Reenvia_el_token_JWT_sin_modificarlo(string path)
+    {
+        // Sesión 04: el Gateway no valida el token; lo deja pasar y lo valida el microservicio.
+        const string token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbi5kZW1vIn0.firma";
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.TryAddWithoutValidation("Authorization", token);
+
+        var response = await fixture.Factory.CreateClient().SendAsync(request, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<FakeResponse>(TestContext.Current.CancellationToken);
+
+        Assert.Equal(token, body?.Authorization);
+    }
+
+    [Theory]
     [InlineData("/api/version1/beneficiarios")]
     [InlineData("/api/vx/beneficiarios")]
     public async Task La_ruta_versionada_exige_el_formato_v_numero(string path)

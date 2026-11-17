@@ -1,9 +1,12 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SocialManagement.Beneficiarios.Api.Contracts;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 namespace SocialManagement.Beneficiarios.SqlServer.IntegrationTests;
@@ -25,6 +28,12 @@ public sealed class SqlServerBeneficiariosApiFactory : WebApplicationFactory<Pro
     private static readonly string? ServerConnection = Environment.GetEnvironmentVariable(ServerConnectionVariable);
 
     public static bool IsConfigured => !string.IsNullOrWhiteSpace(ServerConnection);
+
+    // Usuarios demo de estas pruebas (POST /api/auth/dev-token, solo Development).
+    public const string AdminUser = "admin.sql";
+    public const string AdminPassword = "Clave-Admin-SqlServer";
+    public const string OperadorUser = "operador.sql";
+    public const string OperadorPassword = "Clave-Operador-SqlServer";
 
     /// <summary>
     /// Nombre único (fecha y hora + número aleatorio): varias clases y ejecuciones pueden correr en paralelo
@@ -56,8 +65,36 @@ public sealed class SqlServerBeneficiariosApiFactory : WebApplicationFactory<Pro
             ["Aws:AccessKey"] = "test",
             ["Aws:SecretKey"] = "test",
             ["Ollama:Enabled"] = "false",
+            // Sesión 04: clave JWT y usuarios demo (un equipo real los tendría en user-secrets o variables de entorno).
+            ["Jwt:SigningKey"] = "Clave-De-Firma-Solo-Para-Pruebas-SqlServer-01",
+            ["DevelopmentTokens:Users:0:UserName"] = AdminUser,
+            ["DevelopmentTokens:Users:0:Password"] = AdminPassword,
+            ["DevelopmentTokens:Users:0:Roles:0"] = "Administrador",
+            ["DevelopmentTokens:Users:1:UserName"] = OperadorUser,
+            ["DevelopmentTokens:Users:1:Password"] = OperadorPassword,
+            ["DevelopmentTokens:Users:1:Roles:0"] = "Operador",
         }));
     }
+
+    /// <summary>
+    /// Cliente HTTP autenticado: pide un token a POST /api/auth/dev-token con las credenciales indicadas
+    /// (como haría una persona en Swagger) y lo envía en cada petición (Authorization: Bearer ...).
+    /// </summary>
+    public async Task<HttpClient> CreateAuthenticatedClientAsync(string userName, string password)
+    {
+        var client = CreateClient();
+        using var response = await client.PostAsJsonAsync(
+            "/api/auth/dev-token", new { userName, password }, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var token = await response.Content.ReadFromJsonAsync<DevTokenResponse>(TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token!.AccessToken);
+        return client;
+    }
+
+    public Task<HttpClient> CreateAdminClientAsync() => CreateAuthenticatedClientAsync(AdminUser, AdminPassword);
+
+    public Task<HttpClient> CreateOperadorClientAsync() => CreateAuthenticatedClientAsync(OperadorUser, OperadorPassword);
 
     /// <summary>Ejecuta una consulta directa a la base de datos (fuera de la API) con un DbContext nuevo.</summary>
     public async Task<T> QueryDatabaseAsync<T>(Func<BeneficiariosDbContext, Task<T>> query)

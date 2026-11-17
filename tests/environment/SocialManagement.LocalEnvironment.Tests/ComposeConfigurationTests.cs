@@ -118,6 +118,30 @@ public sealed partial class ComposeConfigurationTests
         Assert.Equal("service_completed_successfully", api.DependencyCondition("sqlserver-init"));
     }
 
+    [Fact]
+    public void La_API_de_beneficiarios_recibe_la_clave_JWT_y_los_usuarios_demo_por_variables()
+    {
+        // Sesión 04: ningún secreto de autenticación está escrito en el compose; los roles sí (no son secretos).
+        var environment = _compose.Services["beneficiarios-api"].Environment;
+
+        Assert.Equal("${JWT_SIGNING_KEY:-}", environment["Jwt__SigningKey"]);
+        Assert.Equal("${DEMO_ADMIN_USER:-}", environment["DevelopmentTokens__Users__0__UserName"]);
+        Assert.Equal("${DEMO_ADMIN_PASSWORD:-}", environment["DevelopmentTokens__Users__0__Password"]);
+        Assert.Equal("Administrador", environment["DevelopmentTokens__Users__0__Roles__0"]);
+        Assert.Equal("${DEMO_OPERADOR_USER:-}", environment["DevelopmentTokens__Users__1__UserName"]);
+        Assert.Equal("${DEMO_OPERADOR_PASSWORD:-}", environment["DevelopmentTokens__Users__1__Password"]);
+        Assert.Equal("Operador", environment["DevelopmentTokens__Users__1__Roles__0"]);
+    }
+
+    [Fact]
+    public void Env_example_trae_una_clave_JWT_de_desarrollo_de_al_menos_32_caracteres()
+    {
+        var values = LocalEnvironment.ParseDotEnv(LocalEnvironment.EnvExampleFile);
+
+        Assert.True(values["JWT_SIGNING_KEY"].Length >= 32, "JWT_SIGNING_KEY debe tener al menos 32 caracteres (HMAC-SHA256).");
+        Assert.All(new[] { "DEMO_ADMIN_PASSWORD", "DEMO_OPERADOR_PASSWORD" }, key => Assert.True(values[key].Length >= 12, $"{key} debe tener al menos 12 caracteres."));
+    }
+
     [Theory]
     [InlineData("beneficiarios-api")]
     [InlineData("solicitudes-api")]
@@ -162,7 +186,7 @@ public sealed partial class ComposeConfigurationTests
     [Fact]
     public void Las_credenciales_provienen_de_variables_y_no_estan_escritas_en_el_compose()
     {
-        var secretKeys = new[] { "PASSWORD", "PASS", "AUTH_TOKEN", "SECRET" };
+        var secretKeys = new[] { "PASSWORD", "PASS", "AUTH_TOKEN", "SECRET", "SIGNINGKEY" };
 
         foreach (var service in _compose.Services.Values)
         {

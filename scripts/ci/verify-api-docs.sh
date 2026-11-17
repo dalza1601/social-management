@@ -109,6 +109,9 @@ run_published() {
       export ASPNETCORE_URLS="http://127.0.0.1:${port}"
       export "ConnectionStrings__${name}Db=Server=127.0.0.1,1;Database=ci;User Id=ci;Password=ci;Connect Timeout=1"
       export RabbitMq__Host=127.0.0.1 RabbitMq__UserName=ci RabbitMq__Password=ci
+      # Sesión 04: Beneficiarios exige una clave JWT de 32+ bytes para arrancar (Solicitudes la ignora).
+      # Clave descartable, solo para este arranque de verificación; no firma nada que salga del job.
+      export Jwt__SigningKey="ci-only-verify-api-docs-signing-key-0123456789"
       exec dotnet "SocialManagement.${name}.Api.dll" > "${output_dir}/${service}.log" 2>&1 ) &
     PIDS+=("$!")
 

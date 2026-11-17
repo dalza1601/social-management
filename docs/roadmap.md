@@ -28,6 +28,7 @@ La **Fase 0** entrega la base técnica. Los módulos siguientes construyen sobre
 
 ## Módulo 3: Comunicación entre microservicios
 
+- ✅ Diseño: contextos, contratos iniciales (eventos v1 y consulta HTTP) y propiedad de datos ([sesión 04](sessions/session-04.md), [documento](microservices-design.md)).
 - Publicador y consumidores RabbitMQ (implementaciones de `IIntegrationEventPublisher` / `IIntegrationEventHandler<T>`).
 - Eventos de integración entre Beneficiarios y Solicitudes; idempotencia y reintentos.
 - Patrón *Outbox* y orquestación o coreografía (*Saga*).
@@ -35,7 +36,8 @@ La **Fase 0** entrega la base técnica. Los módulos siguientes construyen sobre
 
 ## Módulo 4: Seguridad
 
-- Autenticación con JWT / OAuth 2.0 y OpenID Connect.
+- ✅ Autenticación JWT con roles y políticas en Beneficiarios; tokens solo de desarrollo ([sesión 04](sessions/session-04.md)).
+- Proveedor de identidad con OAuth 2.0 y OpenID Connect; *refresh tokens*.
 - Autorización en el Gateway y en los servicios.
 - Login y guardas de rutas en Angular.
 - Gestión de secretos fuera de `.env`.

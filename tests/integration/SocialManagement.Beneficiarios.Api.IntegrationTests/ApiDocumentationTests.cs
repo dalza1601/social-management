@@ -63,16 +63,19 @@ public sealed class ApiDocumentationTests(BeneficiariosApiFactory factory) : ICl
         Assert.True(version.Responses!.ContainsKey("200"));
         Assert.Contains("VersionResponse", document.Components!.Schemas!.Keys);
 
-        // Sin autenticación configurada no se anuncia ningún esquema de seguridad.
-        Assert.True(document.Components.SecuritySchemes is null || document.Components.SecuritySchemes.Count == 0);
+        // Sesión 04: el esquema Bearer (JWT) habilita el botón Authorize de Swagger UI.
+        var bearer = Assert.IsType<OpenApiSecurityScheme>(document.Components.SecuritySchemes!["Bearer"]);
+        Assert.Equal(SecuritySchemeType.Http, bearer.Type);
+        Assert.Equal("bearer", bearer.Scheme);
+        Assert.Equal("JWT", bearer.BearerFormat);
     }
 
     [Theory]
-    [InlineData("POST", "/api/v1/beneficiarios", "201,400,409")]
-    [InlineData("GET", "/api/v1/beneficiarios", "200,400")]
-    [InlineData("GET", "/api/v1/beneficiarios/{id}", "200,404")]
-    [InlineData("PUT", "/api/v1/beneficiarios/{id}", "200,400,404,409")]
-    [InlineData("PATCH", "/api/v1/beneficiarios/{id}/desactivar", "200,404")]
+    [InlineData("POST", "/api/v1/beneficiarios", "201,400,401,403,409")]
+    [InlineData("GET", "/api/v1/beneficiarios", "200,400,401,403")]
+    [InlineData("GET", "/api/v1/beneficiarios/{id}", "200,401,403,404")]
+    [InlineData("PUT", "/api/v1/beneficiarios/{id}", "200,400,401,403,404,409")]
+    [InlineData("PATCH", "/api/v1/beneficiarios/{id}/desactivar", "200,401,403,404")]
     public async Task El_documento_OpenAPI_describe_el_CRUD_de_beneficiarios(string method, string path, string codes)
     {
         await using var stream = await factory.CreateClient().GetStreamAsync("/openapi/v1.json", Ct);
@@ -107,29 +110,42 @@ public sealed class ApiDocumentationTests(BeneficiariosApiFactory factory) : ICl
         Assert.DoesNotContain(servers, url => url.Contains("midominio", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public async Task Con_un_esquema_Bearer_aparece_Authorize_solo_en_los_endpoints_protegidos()
+    [Theory]
+    [InlineData("get", "/api/v1/beneficiarios", "Administrador, Operador")]
+    [InlineData("post", "/api/v1/beneficiarios", "Administrador, Operador")]
+    [InlineData("patch", "/api/v1/beneficiarios/{id}/desactivar", "Administrador")]
+    public async Task Las_operaciones_protegidas_muestran_el_candado_y_los_roles_permitidos(string method, string path, string roles)
     {
-        using var withBearer = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
-        {
-            services.AddAuthentication().AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestBearerHandler>("Bearer", _ => { });
-            services.AddControllers().AddApplicationPart(typeof(ProtectedTestController).Assembly);
-        }));
-        var client = withBearer.CreateClient();
+        using var json = JsonDocument.Parse(await factory.CreateClient().GetStringAsync("/openapi/v1.json", Ct));
 
-        using var json = JsonDocument.Parse(await client.GetStringAsync("/openapi/v1.json", Ct));
-        var root = json.RootElement;
+        var operation = json.RootElement.GetProperty("paths").GetProperty(path).GetProperty(method);
 
-        var scheme = root.GetProperty("components").GetProperty("securitySchemes").GetProperty("Bearer");
-        Assert.Equal("http", scheme.GetProperty("type").GetString());
-        Assert.Equal("bearer", scheme.GetProperty("scheme").GetString());
+        Assert.Equal("Bearer", Assert.Single(operation.GetProperty("security").EnumerateArray()).EnumerateObject().Single().Name);
+        Assert.Contains($"**Roles permitidos:** {roles}.", operation.GetProperty("description").GetString(), StringComparison.Ordinal);
+    }
 
-        var protectedOperation = root.GetProperty("paths").GetProperty("/pruebas/protegido").GetProperty("get");
-        Assert.True(protectedOperation.TryGetProperty("security", out _));
-        Assert.True(protectedOperation.GetProperty("responses").TryGetProperty("401", out _));
+    [Theory]
+    [InlineData("get", "/version")]
+    [InlineData("get", "/api/demo/status")]
+    [InlineData("post", "/api/auth/dev-token")]
+    public async Task Los_endpoints_publicos_no_piden_token_en_Swagger(string method, string path)
+    {
+        using var json = JsonDocument.Parse(await factory.CreateClient().GetStringAsync("/openapi/v1.json", Ct));
 
-        var publicOperation = root.GetProperty("paths").GetProperty("/version").GetProperty("get");
-        Assert.False(publicOperation.TryGetProperty("security", out _));
+        var operation = json.RootElement.GetProperty("paths").GetProperty(path).GetProperty(method);
+
+        Assert.False(operation.TryGetProperty("security", out _));
+        Assert.False(operation.GetProperty("responses").TryGetProperty("401", out _));
+    }
+
+    [Fact]
+    public async Task Fuera_de_Development_el_documento_no_incluye_la_emision_de_tokens()
+    {
+        using var staging = new CustomBeneficiariosApiFactory([], "Staging");
+
+        using var json = JsonDocument.Parse(await staging.CreateClient().GetStringAsync("/openapi/v1.json", Ct));
+
+        Assert.False(json.RootElement.GetProperty("paths").TryGetProperty("/api/auth/dev-token", out _));
     }
 
     // ---------------------------------------------------------------- Configuración por ambiente

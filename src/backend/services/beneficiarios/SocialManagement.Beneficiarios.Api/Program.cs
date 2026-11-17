@@ -43,6 +43,21 @@ app.MapGet(GetDemoStatusEndpoint.Route, GetDemoStatusEndpoint.Handle)
         "la fecha y hora UTC del servidor y el estado de ejecución (Running o Stopping).")
     .Produces<DemoStatusResponse>(StatusCodes.Status503ServiceUnavailable);
 
+// Sesión 04: emisión de tokens JWT SOLO en Development (DevelopmentTokens:Enabled). En Staging y Production
+// esta ruta no existe; los tokens los emitiría un proveedor de identidad real.
+if (app.IsDevelopmentTokenIssuerEnabled())
+{
+    app.MapPost(IssueDevelopmentTokenEndpoint.Route, IssueDevelopmentTokenEndpoint.Handle)
+        .WithName("IssueDevelopmentToken")
+        .WithTags("Autenticación (solo desarrollo)")
+        .WithSummary("Emite un token JWT para un usuario de demostración (solo Development).")
+        .WithDescription(
+            "Cambia el usuario y la clave de un usuario demo (configurados en user-secrets o variables de entorno) " +
+            "por un token JWT con sus roles. Copia el valor de accessToken y pégalo en el botón Authorize. " +
+            "No es un proveedor de identidad: no hay refresh tokens ni registro de usuarios.")
+        .AllowAnonymous();
+}
+
 // Aplica las migraciones de EF Core pendientes si Persistence:ApplyMigrationsAtStartup = true (Docker Compose).
 await app.Services.ApplyDatabaseMigrationsAsync();
 

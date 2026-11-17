@@ -71,7 +71,20 @@ else { Write-Warn 'Git no está instalado (recomendado).' }
 Write-Title '2. Archivo .env'
 # ---------------------------------------------------------------------
 if (Test-Path $script:EnvFile) {
-    Write-Ok '.env ya existe (no se modifica).'
+    # Nunca se cambia un valor existente; solo se AGREGAN las variables nuevas de .env.example
+    # (p. ej. las de JWT de la sesión 04), con su valor de ejemplo de desarrollo.
+    $currentKeys = (Read-DotEnv).Keys
+    $newLines = Get-Content $script:EnvExampleFile -Encoding UTF8 | Where-Object {
+        $trimmed = $_.Trim()
+        $trimmed.Length -gt 0 -and -not $trimmed.StartsWith('#') -and $trimmed.Contains('=') -and
+            ($currentKeys -notcontains $trimmed.Split('=', 2)[0].Trim())
+    }
+    if ($newLines) {
+        $block = "`r`n# Variables nuevas agregadas por setup.ps1 desde .env.example`r`n" + (($newLines | ForEach-Object { $_.Trim() }) -join "`r`n") + "`r`n"
+        [System.IO.File]::AppendAllText($script:EnvFile, $block, (New-Object System.Text.UTF8Encoding $false))
+        Write-Ok ('.env ya existe; se agregaron las variables nuevas: ' + (($newLines | ForEach-Object { $_.Split('=', 2)[0].Trim() }) -join ', '))
+    }
+    else { Write-Ok '.env ya existe y tiene todas las variables (no se modifica).' }
 }
 else {
     Copy-Item $script:EnvExampleFile $script:EnvFile
@@ -93,6 +106,13 @@ elseif ($saPassword.Contains(';') -or $saPassword.Contains("'") -or $saPassword.
     $errors++
 }
 else { Write-Ok 'MSSQL_SA_PASSWORD cumple la política de SQL Server.' }
+
+if ((Get-EnvValue $envValues 'JWT_SIGNING_KEY').Length -ge 32) { Write-Ok 'JWT_SIGNING_KEY tiene al menos 32 caracteres.' }
+else { Write-Fail 'JWT_SIGNING_KEY debe tener al menos 32 caracteres (clave HMAC-SHA256 de los tokens JWT).'; $errors++ }
+
+foreach ($key in @('DEMO_ADMIN_PASSWORD', 'DEMO_OPERADOR_PASSWORD')) {
+    if ((Get-EnvValue $envValues $key).Length -lt 12) { Write-Fail "$key debe tener al menos 12 caracteres."; $errors++ }
+}
 
 if (Get-EnvValue $envValues 'LOCALSTACK_AUTH_TOKEN') { Write-Ok 'LOCALSTACK_AUTH_TOKEN definido (perfil localstack disponible).' }
 else { Write-Info 'LOCALSTACK_AUTH_TOKEN vacío: el perfil opcional "localstack" no se iniciará (el resto funciona igual).' }
@@ -117,9 +137,19 @@ if ($SkipUserSecrets) { Write-Info 'Omitido (-SkipUserSecrets).' }
 elseif (-not $hasDotnet) { Write-Warn 'Omitido: .NET SDK no disponible.' }
 else {
     $sqlPort = Get-EnvValue $envValues 'SQLSERVER_PORT' '14333'
+    # Sesión 04: clave JWT y usuarios demo de POST /api/auth/dev-token (solo la API de Beneficiarios).
+    $jwtSecrets = [ordered]@{
+        'Jwt:SigningKey'                       = (Get-EnvValue $envValues 'JWT_SIGNING_KEY')
+        'DevelopmentTokens:Users:0:UserName'   = (Get-EnvValue $envValues 'DEMO_ADMIN_USER' 'admin.demo')
+        'DevelopmentTokens:Users:0:Password'   = (Get-EnvValue $envValues 'DEMO_ADMIN_PASSWORD')
+        'DevelopmentTokens:Users:0:Roles:0'    = 'Administrador'
+        'DevelopmentTokens:Users:1:UserName'   = (Get-EnvValue $envValues 'DEMO_OPERADOR_USER' 'operador.demo')
+        'DevelopmentTokens:Users:1:Password'   = (Get-EnvValue $envValues 'DEMO_OPERADOR_PASSWORD')
+        'DevelopmentTokens:Users:1:Roles:0'    = 'Operador'
+    }
     $services = @(
-        @{ Project = 'src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Api'; ConnectionName = 'BeneficiariosDb'; Database = 'SocialManagement_Beneficiarios' },
-        @{ Project = 'src\backend\services\solicitudes\SocialManagement.Solicitudes.Api'; ConnectionName = 'SolicitudesDb'; Database = 'SocialManagement_Solicitudes' }
+        @{ Project = 'src\backend\services\beneficiarios\SocialManagement.Beneficiarios.Api'; ConnectionName = 'BeneficiariosDb'; Database = 'SocialManagement_Beneficiarios'; Extra = $jwtSecrets },
+        @{ Project = 'src\backend\services\solicitudes\SocialManagement.Solicitudes.Api'; ConnectionName = 'SolicitudesDb'; Database = 'SocialManagement_Solicitudes'; Extra = @{} }
     )
     foreach ($service in $services) {
         $connectionString = "Server=localhost,$sqlPort;Database=$($service.Database);User Id=sa;Password=$saPassword;TrustServerCertificate=True;Connect Timeout=5"
@@ -131,6 +161,7 @@ else {
             'RabbitMq:VirtualHost'                         = (Get-EnvValue $envValues 'RABBITMQ_VHOST' 'social-management')
             'Aws:ServiceUrl'                               = ('http://localhost:' + (Get-EnvValue $envValues 'LOCALSTACK_PORT' '4566'))
         }
+        foreach ($extra in $service.Extra.GetEnumerator()) { $secrets[$extra.Key] = $extra.Value }
         $failedSecrets = 0
         foreach ($entry in $secrets.GetEnumerator()) {
             $code = Invoke-Native -FilePath 'dotnet' -Arguments @('user-secrets', 'set', $entry.Key, $entry.Value, '--project', $service.Project) -Quiet

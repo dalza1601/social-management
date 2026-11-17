@@ -17,16 +17,17 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private HttpClient Cliente()
+    /// <summary>Cliente autenticado como Administrador (puede todas las operaciones). Ver BeneficiariosAutorizacionTests.</summary>
+    private async Task<HttpClient> ClienteAsync()
     {
         Assert.SkipUnless(SqlServerBeneficiariosApiFactory.IsConfigured, SqlServerBeneficiariosApiFactory.SkipReason);
-        return factory.CreateClient();
+        return await factory.CreateAdminClientAsync();
     }
 
     [Fact]
     public async Task Las_migraciones_se_aplicaron_al_iniciar_la_API()
     {
-        Cliente();   // arranca la API (y con ella las migraciones)
+        await ClienteAsync();   // arranca la API (y con ella las migraciones)
 
         var (aplicadas, pendientes) = await factory.QueryDatabaseAsync(async db =>
             (await db.Database.GetAppliedMigrationsAsync(Ct), await db.Database.GetPendingMigrationsAsync(Ct)));
@@ -38,7 +39,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task Registrar_consultar_actualizar_y_desactivar()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
         var dni = BeneficiariosApiClient.NuevoDni();
 
         // POST → 201 + Location
@@ -74,12 +75,15 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
         Assert.Equal(DateTimeKind.Utc, guardado.CreatedAtUtc.Kind);
         Assert.NotNull(guardado.UpdatedAtUtc);
         Assert.True(guardado.UpdatedAtUtc >= guardado.CreatedAtUtc);
+        // Sesión 04: el usuario del token JWT queda como autor de la creación y de la última modificación.
+        Assert.Equal(SqlServerBeneficiariosApiFactory.AdminUser, guardado.CreatedBy);
+        Assert.Equal(SqlServerBeneficiariosApiFactory.AdminUser, guardado.UpdatedBy);
     }
 
     [Fact]
     public async Task Registrar_un_documento_existente_responde_409_y_no_duplica()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
         var dni = BeneficiariosApiClient.NuevoDni();
         Assert.Equal(HttpStatusCode.Created, (await client.RegistrarAsync(BeneficiariosApiClient.Datos("Luis", "Huamán", dni))).StatusCode);
 
@@ -98,7 +102,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task Actualizar_con_el_documento_de_otro_beneficiario_responde_409()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
         var dniLuis = BeneficiariosApiClient.NuevoDni();
         await client.RegistrarAsync(BeneficiariosApiClient.Datos("Luis", "Huamán", dniLuis));
         var ana = (await (await client.RegistrarAsync(BeneficiariosApiClient.Datos("Ana", "Quispe", BeneficiariosApiClient.NuevoDni())))
@@ -112,7 +116,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task El_indice_unico_de_la_base_de_datos_tambien_impide_duplicados()
     {
-        Cliente();
+        await ClienteAsync();
         var dni = BeneficiariosApiClient.NuevoDni();
         var fecha = DateTimeOffset.UtcNow;
 
@@ -131,7 +135,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task Datos_invalidos_responden_400_con_un_error_por_campo_y_no_se_guardan()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
         var antes = await factory.QueryDatabaseAsync(db => db.Beneficiarios.CountAsync(Ct));
 
         var respuesta = await client.RegistrarAsync(BeneficiariosApiClient.Datos("Ana123", "", "123"));
@@ -145,7 +149,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task Un_identificador_inexistente_responde_404_en_consultar_actualizar_y_desactivar()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
         const int id = int.MaxValue;   // nunca asignado por la columna IDENTITY en estas pruebas
 
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"{BeneficiariosApiClient.Ruta}/{id}", Ct)).StatusCode);
@@ -156,7 +160,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [Fact]
     public async Task SQL_Server_asigna_Ids_enteros_consecutivos()
     {
-        var client = Cliente();
+        var client = await ClienteAsync();
 
         var primero = (await (await client.RegistrarAsync(BeneficiariosApiClient.Datos("Rosa", "Vargas", BeneficiariosApiClient.NuevoDni())))
             .LeerAsync<BeneficiarioDto>()).Data!;
@@ -172,7 +176,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     [InlineData("-5")]
     public async Task Un_identificador_no_positivo_responde_400(string id)
     {
-        var respuesta = await Cliente().GetAsync($"{BeneficiariosApiClient.Ruta}/{id}", Ct);
+        var respuesta = await (await ClienteAsync()).GetAsync($"{BeneficiariosApiClient.Ruta}/{id}", Ct);
 
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
         Assert.Equal("Id", Assert.Single((await respuesta.LeerAsync<object>()).Errors).Field);
@@ -182,7 +186,7 @@ public sealed class BeneficiariosCrudTests(SqlServerBeneficiariosApiFactory fact
     public async Task Un_identificador_que_no_es_entero_no_coincide_con_la_ruta_y_responde_404()
     {
         // La restricción {id:int} solo acepta enteros: un GUID u otro texto no llega al controller.
-        var respuesta = await Cliente().GetAsync($"{BeneficiariosApiClient.Ruta}/abc", Ct);
+        var respuesta = await (await ClienteAsync()).GetAsync($"{BeneficiariosApiClient.Ruta}/abc", Ct);
 
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
     }

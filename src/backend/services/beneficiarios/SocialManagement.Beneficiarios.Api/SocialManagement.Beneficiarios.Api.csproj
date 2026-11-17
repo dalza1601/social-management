@@ -25,6 +25,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
     <!-- Versionado por URL (incluye Asp.Versioning.Mvc.ApiExplorer) y un documento OpenAPI por versión. -->
     <PackageReference Include="Asp.Versioning.OpenApi" />
+    <!-- JWT Bearer (sesión 04). Trae Microsoft.IdentityModel.JsonWebTokens, usado también para emitir los tokens de desarrollo. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <!-- Necesario para "dotnet ef migrations" usando este proyecto como startup project. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>

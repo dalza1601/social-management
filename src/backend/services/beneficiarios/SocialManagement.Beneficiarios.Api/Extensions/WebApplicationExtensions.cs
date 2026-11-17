@@ -18,6 +18,10 @@ public static class WebApplicationExtensions
         // /openapi/v1.json y /swagger, según ApiDocumentation:Enabled (por ambiente).
         app.UseApiDocumentation();
 
+        // Sesión 04: primero se identifica al usuario (token JWT) y después se comprueba qué puede hacer (políticas).
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.MapControllers();
 
         // /health       -> disponibilidad básica: el proceso responde (no consulta dependencias).

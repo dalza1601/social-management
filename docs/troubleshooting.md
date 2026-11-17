@@ -61,6 +61,25 @@ Usa `.\scripts\reset.ps1` o crea el usuario desde la consola de administración.
 **El servicio no arranca: "Falta la configuración obligatoria '...'"**: el mensaje indica la clave y la variable de
 entorno equivalente. Con `dotnet run`, ejecuta `.\scripts\setup.ps1` (configura user-secrets). En Docker, revisa `.env`.
 
+**El servicio no arranca: "Falta la configuración obligatoria 'Jwt:SigningKey'" o "debe tener al menos 32 bytes"**: falta la
+clave de firma de los tokens (sesión 04). Ejecuta `.\scripts\setup.ps1`: agrega `JWT_SIGNING_KEY` a tu `.env` si no la tenía y
+la guarda en user-secrets. En Docker llega como `Jwt__SigningKey` desde `.env`.
+
+**El servicio no arranca: "'DevelopmentTokens:Enabled' solo puede ser true en el ambiente Development"**: alguien activó la
+emisión de tokens de demostración en Staging o Production. Quítala (`DevelopmentTokens__Enabled=false`).
+
+**El servicio no arranca en Development por `DevelopmentTokens:Users`**: faltan los usuarios demo o están mal configurados
+(clave de menos de 12 caracteres, rol distinto de `Administrador`/`Operador`, nombres repetidos). Ejecuta `.\scripts\setup.ps1`.
+
+**`/api/v1/beneficiarios` responde 401**: falta el token, expiró (dura 60 minutos) o se firmó con otra clave (p. ej.
+lo pediste a otra instancia). La cabecera `WWW-Authenticate` explica el motivo. Pide uno nuevo en `POST /api/auth/dev-token`;
+en Swagger, pega solo el token en **Authorize**, sin la palabra `Bearer`.
+
+**Responde 403**: el token es válido pero tu rol no permite esa operación (p. ej. el Operador no puede desactivar).
+Ver la matriz de permisos en [security.md](security.md#roles-políticas-y-permisos).
+
+**`POST /api/auth/dev-token` responde 404**: solo existe en el ambiente Development.
+
 **`/health/ready` devuelve 503 pero `/health` devuelve 200**: el servicio funciona, pero no alcanza SQL Server o RabbitMQ.
 El JSON de respuesta indica cuál falla y por qué.
 

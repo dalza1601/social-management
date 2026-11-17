@@ -27,9 +27,11 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned          # solo si Windows b
 `setup.ps1`:
 
 1. Comprueba Docker, Docker Compose, .NET 10, Node.js y npm.
-2. Crea `.env` desde `.env.example` (nunca sobrescribe uno existente).
-3. Valida la contraseña de SQL Server y avisa si un puerto está ocupado.
-4. Guarda en **user-secrets** la cadena de conexión y las credenciales de RabbitMQ para `dotnet run`.
+2. Crea `.env` desde `.env.example`. Si ya existe, no cambia ningún valor: solo le **agrega** las variables nuevas de
+   `.env.example` (p. ej. las de JWT de la sesión 04).
+3. Valida la contraseña de SQL Server, la clave JWT (32 o más caracteres) y las claves demo, y avisa si un puerto está ocupado.
+4. Guarda en **user-secrets** la cadena de conexión, las credenciales de RabbitMQ y, para Beneficiarios, la clave JWT y
+   los usuarios demo (`Jwt:SigningKey`, `DevelopmentTokens:Users:*`) para `dotnet run`.
 5. Restaura NuGet e instala las dependencias del frontend.
 
 ## 3. Modos de trabajo
@@ -80,6 +82,12 @@ Abre <http://localhost:4200>.
 | Solicitudes API | <http://localhost:8082> |
 | Gateway | <http://localhost:8080> |
 | Frontend | <http://localhost:4200> |
+
+### Token para probar la API de Beneficiarios (sesión 04)
+
+Las operaciones de `/api/v1/beneficiarios` exigen un token JWT. En Development, pídelo a `POST /api/auth/dev-token`
+con un usuario demo de tu `.env` (`DEMO_ADMIN_USER` / `DEMO_ADMIN_PASSWORD` o `DEMO_OPERADOR_*`) y pégalo en el botón
+**Authorize** de Swagger. Ejemplos con PowerShell y curl en [security.md](security.md#obtener-y-usar-un-token).
 
 ### Cómo llega el frontend al Gateway (sin URLs en el código)
 

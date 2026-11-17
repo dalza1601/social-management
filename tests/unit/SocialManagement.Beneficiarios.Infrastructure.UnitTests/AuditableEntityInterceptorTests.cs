@@ -18,13 +18,14 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
     private static readonly DateTimeOffset Ahora = new(2026, 11, 14, 10, 0, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _clock = new(Ahora);
+    private readonly FakeCurrentUser _usuario = new();
     private readonly AuditableEntityInterceptor _interceptor;
     private readonly BeneficiariosDbContext _context = new(
         new DbContextOptionsBuilder<BeneficiariosDbContext>()
             .UseSqlServer("Server=localhost;Database=ModeloSinConexion;Trusted_Connection=True")
             .Options);
 
-    public AuditableEntityInterceptorTests() => _interceptor = new AuditableEntityInterceptor(_clock);
+    public AuditableEntityInterceptorTests() => _interceptor = new AuditableEntityInterceptor(_clock, _usuario);
 
     private static Beneficiario NuevoBeneficiario() => Beneficiario.Registrar(
         "Ana", "Quispe", DocumentoIdentidad.Crear(TipoDocumentoIdentidad.Dni, "12345678"), Ahora);
@@ -47,7 +48,7 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
 
         Assert.Equal(Ahora.UtcDateTime, beneficiario.CreatedAtUtc);
         Assert.Equal(DateTimeKind.Utc, beneficiario.CreatedAtUtc.Kind);
-        Assert.Null(beneficiario.CreatedBy);        // sin autenticación todavía
+        Assert.Null(beneficiario.CreatedBy);        // sin usuario: p. ej. un proceso interno fuera de una petición HTTP
         Assert.Null(beneficiario.UpdatedAtUtc);
         Assert.Null(beneficiario.UpdatedBy);
     }
@@ -83,6 +84,36 @@ public sealed class AuditableEntityInterceptorTests : IDisposable
 
         Assert.Equal(default, beneficiario.CreatedAtUtc);
         Assert.Null(beneficiario.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void Al_crear_registra_el_usuario_autenticado()
+    {
+        _usuario.UserName = "operador.demo";
+        var beneficiario = NuevoBeneficiario();
+        _context.Add(beneficiario);
+
+        _interceptor.ApplyAudit(_context);
+
+        Assert.Equal("operador.demo", beneficiario.CreatedBy);
+        Assert.Equal("operador.demo", beneficiario.UpdatedBy);   // AuditableEntity.MarkCreated también lo asigna
+        Assert.Null(beneficiario.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void Al_modificar_registra_quien_modifico_y_conserva_quien_creo()
+    {
+        var beneficiario = BeneficiarioGuardado(1);
+        beneficiario.MarkCreated(Ahora.UtcDateTime, createdBy: "operador.demo");
+        _context.Attach(beneficiario);
+
+        _usuario.UserName = "admin.demo";   // el usuario que hace la petición actual (sale del token JWT)
+        beneficiario.Desactivar();
+        _context.ChangeTracker.DetectChanges();
+        _interceptor.ApplyAudit(_context);
+
+        Assert.Equal("operador.demo", beneficiario.CreatedBy);
+        Assert.Equal("admin.demo", beneficiario.UpdatedBy);
     }
 
     public void Dispose() => _context.Dispose();

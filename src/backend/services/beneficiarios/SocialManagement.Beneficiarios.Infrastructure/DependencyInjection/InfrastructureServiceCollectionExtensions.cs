@@ -50,6 +50,8 @@ public static class InfrastructureServiceCollectionExtensions
 
         // Auditoría automática (CreatedAtUtc, UpdatedAtUtc...) de las entidades que heredan de AuditableEntity.
         services.TryAddSingleton(TimeProvider.System);
+        // Usuario de auditoría: sin usuario por defecto; la API lo reemplaza por el usuario del token JWT.
+        services.TryAddSingleton<ICurrentUser, AnonymousCurrentUser>();
         services.AddSingleton<AuditableEntityInterceptor>();
 
         services.AddDbContext<BeneficiariosDbContext>((serviceProvider, options) =>

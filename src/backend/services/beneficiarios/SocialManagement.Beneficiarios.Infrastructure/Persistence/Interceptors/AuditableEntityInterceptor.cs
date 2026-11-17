@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Domain.Entities;
 
 namespace SocialManagement.Beneficiarios.Infrastructure.Persistence.Interceptors;
@@ -12,10 +13,11 @@ namespace SocialManagement.Beneficiarios.Infrastructure.Persistence.Interceptors
 /// - Entidad nueva (Added): <see cref="AuditableEntity.MarkCreated"/> con la hora y el usuario actuales.
 /// - Entidad modificada (Modified): <see cref="AuditableEntity.MarkUpdated"/>; CreatedAtUtc y CreatedBy
 ///   se protegen para que no se sobrescriban.
-/// La hora viene de <see cref="TimeProvider"/> (reemplazable en pruebas). El usuario actual será null
-/// hasta que el proyecto incorpore autenticación (módulo de seguridad).
+/// La hora viene de <see cref="TimeProvider"/> (reemplazable en pruebas). El usuario viene de
+/// <see cref="ICurrentUser"/>: en la API es el usuario del token JWT (sesión 04); sin petición HTTP es null.
+/// El interceptor es singleton: <see cref="ICurrentUser"/> se consulta en cada SaveChanges, nunca se guarda.
 /// </remarks>
-internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
+internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider, ICurrentUser currentUser) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -40,7 +42,7 @@ internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : Sa
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        string? currentUser = null;   // Con autenticación: el usuario del token (p. ej. un ICurrentUser).
+        var userName = currentUser.UserName;
 
         // Detecta los cambios hechos con métodos del dominio (p. ej. Desactivar()) antes de revisar los estados.
         context.ChangeTracker.DetectChanges();
@@ -50,11 +52,11 @@ internal sealed class AuditableEntityInterceptor(TimeProvider timeProvider) : Sa
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.MarkCreated(now, currentUser);
+                    entry.Entity.MarkCreated(now, userName);
                     break;
 
                 case EntityState.Modified:
-                    entry.Entity.MarkUpdated(now, currentUser);
+                    entry.Entity.MarkUpdated(now, userName);
                     // La creación nunca se reescribe al actualizar.
                     entry.Property(entity => entity.CreatedAtUtc).IsModified = false;
                     entry.Property(entity => entity.CreatedBy).IsModified = false;

@@ -38,7 +38,8 @@ internal sealed class FakeDownstreamService : IAsyncDisposable
             context.Request.Path.Value ?? "/",
             context.Request.Headers["X-Forwarded-Prefix"].ToString(),
             context.Request.Headers["X-Forwarded-Host"].ToString(),
-            context.Request.Headers["X-Forwarded-Proto"].ToString())));
+            context.Request.Headers["X-Forwarded-Proto"].ToString(),
+            context.Request.Headers.Authorization.ToString())));
 
         await app.StartAsync();
 

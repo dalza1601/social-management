@@ -8,7 +8,7 @@ using SocialManagement.Beneficiarios.Api.Middleware;
 namespace SocialManagement.Beneficiarios.Api.Extensions;
 
 /// <summary>
-/// Servicios propios de la capa de presentación: controllers, ProblemDetails,
+/// Servicios propios de la capa de presentación: controllers, ProblemDetails, seguridad JWT,
 /// manejo global de excepciones, OpenAPI y health check básico.
 /// </summary>
 public static class ApiServiceCollectionExtensions
@@ -62,6 +62,9 @@ public static class ApiServiceCollectionExtensions
                 context.ProblemDetails.Extensions.TryAdd("traceId", http.GetTraceId());
             });
         services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        // Autenticación JWT, roles, políticas de autorización y tokens de desarrollo (sesión 04).
+        services.AddJwtSecurity();
 
         // Reloj del sistema como abstracción (TimeProvider, incluido en .NET).
         // TryAdd: si una prueba ya registró un reloj falso, se respeta.

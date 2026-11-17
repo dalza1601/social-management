@@ -7,7 +7,12 @@ SocialManagement es un sistema de **microservicios**. Cada microservicio:
 - se organiza internamente con **Clean Architecture** (cuatro proyectos);
 - tiene **su propia base de datos** (*Database per Service*) y su propio `DbContext`;
 - se publica hacia el exterior **solo a través del API Gateway**;
-- se comunica con otros servicios mediante **mensajes** (RabbitMQ), nunca accediendo a su base de datos.
+- se comunica con otros servicios mediante **eventos** (RabbitMQ) y, solo cuando necesita una respuesta inmediata,
+  por **HTTP a la API pública** del otro servicio; nunca accede a su base de datos;
+- valida por sí mismo el **token JWT** de cada petición (el Gateway lo reenvía sin validarlo).
+
+Contextos, contratos entre servicios y propiedad de datos: [microservices-design.md](microservices-design.md).
+Autenticación y autorización: [security.md](security.md).
 
 ```mermaid
 flowchart TB
@@ -116,6 +121,7 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | Entidades sin atributos de persistencia (`[Key]`, `[Required]`...) | Reflexión: el mapeo va en `Infrastructure/Persistence/Configurations` |
 | Un tipo por archivo, con el nombre del tipo                      | `SourceFileConventionsTests` sobre `src` y `tests` |
 | Entidades con `Id` entero (`int`) y ningún uso del tipo `Guid`   | `IdentifierRulesTests`: reflexión sobre `Domain.Entities` y búsqueda en `src` y `tests` |
+| Toda ruta de negocio `/api/v{n}/...` declara su política de autorización | `AuthorizationTests` (integración): recorre los endpoints registrados |
 
 > Prueba a agregar `<ProjectReference>` de `Application` a `Infrastructure`: las pruebas fallarán
 > y te dirán qué regla se rompió.
@@ -133,6 +139,10 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | **Gateway sin reescritura** para los recursos versionados: `/api/v1/beneficiarios/...` → igual en el servicio (ruta `beneficiarios-versioned-route`, restricción `v<número>`). | La URL pública del recurso es la misma que documenta el OpenAPI del servicio. |
 | **Migraciones aplicadas al iniciar solo en Docker Compose** (`Persistence__ApplyMigrationsAtStartup=true`); en otros ambientes, `dotnet ef database update` o un script SQL idempotente revisado. | Comodidad en desarrollo sin arriesgar cambios de esquema automáticos en producción. |
 | **El frontend llama a `/gateway/*` en su propio origen** (proxy de desarrollo o nginx). | Sin CORS y sin URLs del Gateway escritas en el código Angular. |
+| **Cada servicio valida el JWT** (`AddJwtBearer`); el Gateway solo reenvía `Authorization`. | Ningún servicio confía en que "alguien antes" validó: si se accede al servicio sin pasar por el Gateway, sigue protegido. |
+| **Políticas por tipo de operación** (`Beneficiarios.Lectura`, `.Escritura`, `.Desactivacion`) declaradas en cada acción, también en las de lectura. | Quién puede hacer qué se cambia en un solo archivo (`AuthorizationPolicies.cs`); los datos personales nunca quedan públicos por omisión. |
+| **Emisión de tokens solo en Development** (`/api/auth/dev-token`), con usuarios demo en user-secrets o variables de entorno. | Permite probar sin un proveedor de identidad; en producción los tokens los emitirá un proveedor OAuth 2.0 / OIDC (módulo 4). |
+| **`ICurrentUser` en Application**; la API lo implementa con el usuario del token. | La auditoría (`CreatedBy`/`UpdatedBy`) conoce al usuario sin que Infrastructure dependa de ASP.NET Core. |
 
 ## Endpoints técnicos
 
@@ -178,7 +188,7 @@ repetirla en cada uno:
 
 ```json
 // ApiResponse<T>: éxito (200/201)
-{ "success": true, "data": { "id": "..." }, "message": null, "errors": [], "traceId": "00-..." }
+{ "success": true, "data": { "id": 25 }, "message": null, "errors": [], "traceId": "00-..." }
 
 // ApiResponse<T>: error (400/404/422/500)
 { "success": false, "data": null, "message": "La solicitud contiene datos no válidos.",
@@ -189,6 +199,8 @@ repetirla en cada uno:
 |------------------------|------------------|------|
 | Modelo inválido (tipos, JSON mal formado, `[Required]`) | `InvalidModelStateResponseFactory` (`AddApiPresentation`) | 400 |
 | Datos de entrada inválidos (FluentValidation) | El caso de uso lanza `ValidationException` → `GlobalExceptionHandler` | 400 |
+| Sin token o token inválido (sesión 04) | JwtBearer + `ApiResponseAuthorizationResultHandler` | 401 |
+| Token válido sin el rol de la política | `ApiResponseAuthorizationResultHandler` | 403 |
 | Recurso inexistente | `ApiNotFound` / `ApiOkOrNotFound` | 404 |
 | `DomainException` | `GlobalExceptionHandler` | 422 |
 | Excepción inesperada | `GlobalExceptionHandler` (sin detalles internos) | 500 |

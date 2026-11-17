@@ -151,6 +151,14 @@ services:
       ConnectionStrings__BeneficiariosDb: "Server=sqlserver,1433;Database=SocialManagement_Beneficiarios;User Id=sa;Password=${MSSQL_SA_PASSWORD:-};TrustServerCertificate=True;Connect Timeout=5"
       # Aplica las migraciones de EF Core pendientes al iniciar (tablas del esquema "beneficiarios").
       Persistence__ApplyMigrationsAtStartup: "true"
+      # Sesión 04: clave de firma JWT y usuarios demo de POST /api/auth/dev-token (solo en Development).
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-}
+      DevelopmentTokens__Users__0__UserName: ${DEMO_ADMIN_USER:-}
+      DevelopmentTokens__Users__0__Password: ${DEMO_ADMIN_PASSWORD:-}
+      DevelopmentTokens__Users__0__Roles__0: Administrador
+      DevelopmentTokens__Users__1__UserName: ${DEMO_OPERADOR_USER:-}
+      DevelopmentTokens__Users__1__Password: ${DEMO_OPERADOR_PASSWORD:-}
+      DevelopmentTokens__Users__1__Roles__0: Operador
       RabbitMq__ClientProvidedName: beneficiarios-api
     ports:
       - "127.0.0.1:${BENEFICIARIOS_API_PORT:-8081}:8080"

@@ -87,6 +87,8 @@ public static partial class ApiDocumentationExtensions
             ui.SwaggerEndpoint(RelativeDocumentUrl(options), $"{serviceName} {ApiDocumentationOptions.DocumentName}");
             ui.DocumentTitle = $"SocialManagement · {serviceName}";
             ui.DisplayRequestDuration();
+            // Conserva el token pegado en Authorize al recargar la página (solo en el navegador de quien la usa).
+            ui.EnablePersistAuthorization();
         });
 
         app.Logger.LogInformation(

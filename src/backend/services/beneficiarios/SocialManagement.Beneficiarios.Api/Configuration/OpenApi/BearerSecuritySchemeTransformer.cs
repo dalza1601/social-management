@@ -7,7 +7,7 @@ namespace SocialManagement.Beneficiarios.Api.Configuration.OpenApi;
 /// <summary>
 /// Declara el esquema de seguridad "Bearer" (JWT) en el documento OpenAPI, lo que habilita el botón
 /// <b>Authorize</b> de Swagger UI. Solo actúa si la aplicación tiene registrado un esquema de
-/// autenticación llamado "Bearer" (p. ej. con AddJwtBearer); hoy no existe, por lo que no añade nada.
+/// autenticación llamado "Bearer": desde la sesión 04 lo registra AddJwtBearer (ver SecurityExtensions).
 /// </summary>
 internal sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransformer
 {

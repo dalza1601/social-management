@@ -4,7 +4,7 @@ namespace SocialManagement.Beneficiarios.Infrastructure.Configurations;
 /// Mensajes de error de configuración comprensibles para quien ejecuta el servicio.
 /// Indican la clave faltante y cómo definirla (appsettings, variable de entorno o user-secrets).
 /// </summary>
-internal static class ConfigurationMessages
+public static class ConfigurationMessages
 {
     public static string Required(string key) =>
         $"Falta la configuración obligatoria '{key}'. " +

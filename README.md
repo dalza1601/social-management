@@ -4,8 +4,8 @@
 *Especialización en Arquitectura de Microservicios con .NET 10, Angular, IA Generativa y DevOps*.
 
 Sobre la **Fase 0 (Foundation)** (esqueleto arquitectónico e infraestructura local) se construyen, sesión
-a sesión, los seis módulos del curso. Estado actual: **sesión 03**, CRUD de beneficiarios con EF Core 10 y
-SQL Server (`/api/v1/beneficiarios`). Ver la [tabla de sesiones](#sesiones-del-curso).
+a sesión, los seis módulos del curso. Estado actual: **sesión 04**, API de beneficiarios protegida con JWT y roles, y
+[diseño de microservicios](docs/microservices-design.md). Ver la [tabla de sesiones](#sesiones-del-curso).
 
 ```mermaid
 flowchart LR
@@ -48,6 +48,7 @@ Abre <http://localhost:4200> y entra en **Estado del sistema**.
 | API Gateway         | <http://localhost:8080/health/ready>          |
 | Beneficiarios API   | <http://localhost:8081/version> · [Swagger](http://localhost:8081/swagger) · [OpenAPI](http://localhost:8081/openapi/v1.json) · [demo](http://localhost:8081/api/demo/status) · [CRUD](http://localhost:8081/api/v1/beneficiarios) |
 | CRUD vía Gateway    | <http://localhost:8080/api/v1/beneficiarios>  |
+| Token JWT (solo Development) | `POST http://localhost:8081/api/auth/dev-token` con un usuario demo de `.env` ([cómo](docs/security.md#obtener-y-usar-un-token)) |
 | Solicitudes API     | <http://localhost:8082/version> · [Swagger](http://localhost:8082/swagger) · [OpenAPI](http://localhost:8082/openapi/v1.json) |
 | Swagger vía Gateway | <http://localhost:8080/api/beneficiarios/swagger> · <http://localhost:8080/api/solicitudes/swagger> |
 | RabbitMQ (consola)  | <http://localhost:15672> (usuario y clave en `.env`) |
@@ -111,10 +112,13 @@ social-management/
 | [01](docs/sessions/session-01.md) | Primera API con .NET 10 | `GET /api/demo/status` en Beneficiarios, pruebas, OpenAPI y prompts de IA |
 | [02](docs/sessions/session-02.md) | Clean Architecture | Entidad `Beneficiario`, value object `DocumentoIdentidad`, `IBeneficiarioRepository`, casos de uso registrar/consultar y SOLID |
 | [03](docs/sessions/session-03.md) | CRUD de beneficiarios | EF Core 10 + SQL Server, migración `InicialBeneficiarios`, `/api/v1/beneficiarios` (201/200/400/404/409), pruebas de integración con SQL Server real |
+| [04](docs/sessions/session-04.md) | JWT y fundamentos de microservicios | Autenticación JWT, roles `Administrador`/`Operador`, políticas, Swagger con Authorize, tokens solo de desarrollo; [diseño de microservicios](docs/microservices-design.md) (contextos, contratos, propiedad de datos) |
 
 ## Documentación
 
 - [Arquitectura y reglas de dependencia](docs/architecture.md)
+- [Diseño de microservicios: contextos, contratos y propiedad de datos](docs/microservices-design.md)
+- [Seguridad: autenticación JWT y autorización](docs/security.md)
 - [Documentación de las APIs: Swagger UI y OpenAPI](docs/api-documentation.md)
 - [Infraestructura: Docker, SQL Server, RabbitMQ, LocalStack y Ollama](docs/infrastructure.md)
 - [Desarrollo local: instalación y comandos](docs/local-development.md)
@@ -124,5 +128,7 @@ social-management/
 ## Seguridad
 
 - `.env` **no se versiona**. Todos los valores de `.env.example` son exclusivos para desarrollo local.
+- La clave de firma JWT y los usuarios demo están solo en `.env` (user-secrets o variables de entorno), nunca en el código.
+  La emisión de tokens `/api/auth/dev-token` existe únicamente en Development.
 - Las credenciales de AWS son ficticias y solo funcionan contra LocalStack. Este proyecto **no** despliega en AWS real.
 - Los puertos se publican únicamente en `127.0.0.1`.

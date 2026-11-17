@@ -17,7 +17,7 @@ public sealed class BeneficiariosPaginacionTests(SqlServerBeneficiariosApiFactor
     public async Task Lista_por_paginas_ordenado_por_apellidos_y_nombres()
     {
         Assert.SkipUnless(SqlServerBeneficiariosApiFactory.IsConfigured, SqlServerBeneficiariosApiFactory.SkipReason);
-        var client = factory.CreateClient();
+        var client = await factory.CreateAdminClientAsync();
 
         foreach (var (nombres, apellidos) in new[] { ("Rosa", "Vargas"), ("Luis", "Huamán"), ("Beatriz", "Quispe"), ("Carlos", "Flores"), ("Ana", "Quispe") })
         {
@@ -45,7 +45,8 @@ public sealed class BeneficiariosPaginacionTests(SqlServerBeneficiariosApiFactor
     {
         Assert.SkipUnless(SqlServerBeneficiariosApiFactory.IsConfigured, SqlServerBeneficiariosApiFactory.SkipReason);
 
-        var respuesta = await factory.CreateClient().GetAsync($"{BeneficiariosApiClient.Ruta}?{query}", Ct);
+        var client = await factory.CreateOperadorClientAsync();   // listar: lectura, permitida al Operador
+        var respuesta = await client.GetAsync($"{BeneficiariosApiClient.Ruta}?{query}", Ct);
 
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }

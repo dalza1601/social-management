@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Security;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Features.ActualizarBeneficiario;
 using SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficiario;
@@ -14,6 +16,10 @@ namespace SocialManagement.Beneficiarios.Api.Controllers;
 /// Cada acción traduce HTTP ↔ caso de uso; no hay lógica de negocio ni de persistencia aquí.
 /// La ruta, el formato ApiResponse y las respuestas 400/422/500 los aporta BaseApiController.
 /// </summary>
+/// <remarks>
+/// Sesión 04: todas las acciones exigen un token JWT y declaran EXPLÍCITAMENTE su política de autorización,
+/// también las de lectura (ver <see cref="AuthorizationPolicies"/>). Sin token: 401; sin el rol necesario: 403.
+/// </remarks>
 public sealed class BeneficiariosController : BaseApiController
 {
     /// <summary>Registra un beneficiario.</summary>
@@ -21,6 +27,7 @@ public sealed class BeneficiariosController : BaseApiController
     /// <response code="400">Datos de entrada no válidos (un error por campo).</response>
     /// <response code="409">Ya existe un beneficiario con el mismo documento.</response>
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.EscrituraBeneficiarios)]
     [ProducesResponseType<ApiResponse<BeneficiarioDto>>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ApiResponse<BeneficiarioDto>>> Registrar(
@@ -35,6 +42,7 @@ public sealed class BeneficiariosController : BaseApiController
     /// <response code="200">Datos del beneficiario.</response>
     /// <response code="404">No existe un beneficiario con ese identificador.</response>
     [HttpGet("{id:int}")]
+    [Authorize(Policy = AuthorizationPolicies.LecturaBeneficiarios)]
     [ProducesResponseType<ApiResponse<BeneficiarioDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<BeneficiarioDto>>> ObtenerPorId(int id, CancellationToken cancellationToken)
@@ -50,6 +58,7 @@ public sealed class BeneficiariosController : BaseApiController
     /// <response code="200">Página de resultados con el total de registros y de páginas.</response>
     /// <response code="400">Parámetros de paginación no válidos.</response>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.LecturaBeneficiarios)]
     [ProducesResponseType<ApiResponse<PagedResult<BeneficiarioDto>>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<BeneficiarioDto>>>> Listar(
         [FromQuery] int pagina = 1,
@@ -66,6 +75,7 @@ public sealed class BeneficiariosController : BaseApiController
     /// <response code="404">No existe un beneficiario con ese identificador.</response>
     /// <response code="409">El nuevo documento ya pertenece a otro beneficiario.</response>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = AuthorizationPolicies.EscrituraBeneficiarios)]
     [ProducesResponseType<ApiResponse<BeneficiarioDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status409Conflict)]
@@ -82,6 +92,7 @@ public sealed class BeneficiariosController : BaseApiController
     /// <response code="200">Beneficiario desactivado (también si ya lo estaba).</response>
     /// <response code="404">No existe un beneficiario con ese identificador.</response>
     [HttpPatch("{id:int}/desactivar")]
+    [Authorize(Policy = AuthorizationPolicies.DesactivacionBeneficiarios)]
     [ProducesResponseType<ApiResponse<BeneficiarioDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiResponse<object>>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<BeneficiarioDto>>> Desactivar(int id, CancellationToken cancellationToken)

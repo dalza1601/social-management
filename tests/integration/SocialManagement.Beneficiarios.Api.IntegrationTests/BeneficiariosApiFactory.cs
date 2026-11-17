@@ -38,6 +38,15 @@ public class BeneficiariosApiFactory : WebApplicationFactory<Program>
         ["Aws:AccessKey"] = "test",
         ["Aws:SecretKey"] = "test",
         ["Ollama:Enabled"] = "false",
+        // Sesión 04: clave de firma JWT y usuarios demo (en un equipo real: user-secrets o variables de entorno).
+        // DevelopmentTokens:Enabled lo decide el ambiente (true solo en appsettings.Development.json).
+        ["Jwt:SigningKey"] = TestTokens.SigningKey,
+        ["DevelopmentTokens:Users:0:UserName"] = TestTokens.AdminUser,
+        ["DevelopmentTokens:Users:0:Password"] = TestTokens.AdminPassword,
+        ["DevelopmentTokens:Users:0:Roles:0"] = "Administrador",
+        ["DevelopmentTokens:Users:1:UserName"] = TestTokens.OperadorUser,
+        ["DevelopmentTokens:Users:1:Password"] = TestTokens.OperadorPassword,
+        ["DevelopmentTokens:Users:1:Roles:0"] = "Operador",
     };
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

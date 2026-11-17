@@ -21,6 +21,8 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="11.0.1" />
     <!-- Versionado de APIs en la URL (api/v{version:apiVersion}/[controller]) y un documento OpenAPI por versión. -->
     <PackageVersion Include="Asp.Versioning.OpenApi" Version="10.2.3" />
+    <!-- Autenticación JWT Bearer (sesión 04): valida firma, emisor, audiencia y expiración de los tokens. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup Label="Validación (capa Application)">
