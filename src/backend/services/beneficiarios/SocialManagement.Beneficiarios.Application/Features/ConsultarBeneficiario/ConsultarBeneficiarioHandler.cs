@@ -1,3 +1,4 @@
+using AutoMapper;
 using FluentValidation;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Interfaces;
@@ -7,7 +8,8 @@ namespace SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficia
 /// <summary>Caso de uso: consultar un beneficiario por su identificador.</summary>
 public sealed class ConsultarBeneficiarioHandler(
     IValidator<ConsultarBeneficiarioQuery> validator,
-    IBeneficiarioRepository repository)
+    IBeneficiarioRepository repository,
+    IMapper mapper)
 {
     /// <returns>El beneficiario, o <c>null</c> si no existe.</returns>
     /// <exception cref="ValidationException">El identificador no está informado.</exception>
@@ -19,6 +21,6 @@ public sealed class ConsultarBeneficiarioHandler(
 
         var beneficiario = await repository.ObtenerPorIdAsync(query.Id, cancellationToken);
 
-        return beneficiario is null ? null : BeneficiarioDto.Desde(beneficiario);
+        return beneficiario is null ? null : mapper.Map<BeneficiarioDto>(beneficiario);
     }
 }

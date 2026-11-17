@@ -28,6 +28,12 @@
   <ItemGroup Label="Validación (capa Application)">
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+    <!--
+      Mapeo objeto-objeto (entidad → DTO, request → comando). Incluye AddAutoMapper para el registro en DI.
+      Licencia: RPL-1.5 o comercial (Lucky Penny Software). Sin clave de licencia funciona igual, pero registra
+      un aviso en el log: ver AutoMapper:LicenseKey en docs/architecture.md. 16.3.0 es la última de la serie 16.
+    -->
+    <PackageVersion Include="AutoMapper" Version="16.3.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.15" />

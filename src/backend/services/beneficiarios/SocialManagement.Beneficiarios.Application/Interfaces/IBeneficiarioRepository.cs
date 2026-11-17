@@ -1,5 +1,7 @@
+using SocialManagement.Beneficiarios.Application.Common.Pagination;
+using SocialManagement.Beneficiarios.Application.Features.ListarBeneficiarios;
 using SocialManagement.Beneficiarios.Domain.Entities;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.Interfaces;
 
@@ -14,7 +16,8 @@ namespace SocialManagement.Beneficiarios.Application.Interfaces;
 ///   queda bajo seguimiento: sus cambios se guardan con <see cref="IUnitOfWork.SaveChangesAsync"/>.
 /// - <see cref="AgregarAsync"/> solo REGISTRA al beneficiario como nuevo; se guarda cuando el caso de uso
 ///   confirma con <see cref="IUnitOfWork.SaveChangesAsync"/> (patrón Unit of Work).
-/// - <see cref="ListarAsync"/> es de solo lectura y ordena por apellidos, nombres e Id (paginación estable).
+/// - <see cref="ListarAsync"/> es de solo lectura: filtra por SearchTerm, ordena según Sort (por defecto apellidos y
+///   nombres; el Id siempre desempata para que la paginación sea estable) y pagina con SafePageNumber/SafePageSize.
 /// </remarks>
 public interface IBeneficiarioRepository
 {
@@ -22,7 +25,7 @@ public interface IBeneficiarioRepository
 
     Task<bool> ExisteConDocumentoAsync(DocumentoIdentidad documento, CancellationToken cancellationToken = default);
 
-    Task<(IReadOnlyList<Beneficiario> Items, int Total)> ListarAsync(int pagina, int tamanoPagina, CancellationToken cancellationToken = default);
+    Task<PagedResponse<Beneficiario>> ListarAsync(BeneficiarioQueryParameters parameters, CancellationToken cancellationToken = default);
 
     Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default);
 }

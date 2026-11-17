@@ -70,7 +70,7 @@ namespace SocialManagement.Beneficiarios.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("SocialManagement.Beneficiarios.Domain.Entities.Beneficiario", b =>
                 {
-                    b.OwnsOne("SocialManagement.Beneficiarios.Domain.ValueObjects.DocumentoIdentidad", "Documento", b1 =>
+                    b.OwnsOne("SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios.DocumentoIdentidad", "Documento", b1 =>
                         {
                             b1.Property<int>("BeneficiarioId")
                                 .HasColumnType("int");

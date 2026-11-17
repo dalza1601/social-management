@@ -80,6 +80,10 @@ Ver la matriz de permisos en [security.md](security.md#roles-políticas-y-permis
 
 **`POST /api/auth/dev-token` responde 404**: solo existe en el ambiente Development.
 
+**El log muestra "You do not have a valid license key for the Lucky Penny software AutoMapper"**: es un aviso, no un error.
+AutoMapper funciona sin clave en desarrollo y pruebas; en producción exige licencia. Si tienes una, ponla en
+`AUTOMAPPER_LICENSE_KEY` de `.env` y ejecuta `.\scripts\setup.ps1` (ver [architecture.md](architecture.md#mapeo-de-objetos-automapper)).
+
 **`/health/ready` devuelve 503 pero `/health` devuelve 200**: el servicio funciona, pero no alcanza SQL Server o RabbitMQ.
 El JSON de respuesta indica cuál falla y por qué.
 

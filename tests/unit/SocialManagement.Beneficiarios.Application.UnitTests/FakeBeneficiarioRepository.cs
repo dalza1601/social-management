@@ -1,6 +1,8 @@
+using SocialManagement.Beneficiarios.Application.Common.Pagination;
+using SocialManagement.Beneficiarios.Application.Features.ListarBeneficiarios;
 using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Domain.Entities;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.UnitTests;
 
@@ -22,17 +24,32 @@ internal sealed class FakeBeneficiarioRepository : IBeneficiarioRepository
         Task.FromResult(_beneficiarios.Any(b => b.Documento == documento));
 
     // Mismo orden que la implementación real: apellidos, nombres e Id (desempate estable).
-    public Task<(IReadOnlyList<Beneficiario> Items, int Total)> ListarAsync(int pagina, int tamanoPagina, CancellationToken cancellationToken = default)
+    /// <summary>Últimos parámetros recibidos por <see cref="ListarAsync"/> (para comprobar qué pidió el caso de uso).</summary>
+    public BeneficiarioQueryParameters? UltimosParametros { get; private set; }
+
+    /// <summary>
+    /// Versión en memoria y simplificada: busca sin distinguir mayúsculas y usa el orden por defecto (apellidos,
+    /// nombres, Id). El orden por otros campos se prueba contra SQL Server (BeneficiariosPaginacionTests).
+    /// </summary>
+    public Task<PagedResponse<Beneficiario>> ListarAsync(BeneficiarioQueryParameters parameters, CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Beneficiario> items = _beneficiarios
+        UltimosParametros = parameters;
+        var pageNumber = parameters.Pagination.SafePageNumber;
+        var pageSize = parameters.Pagination.SafePageSize;
+        var term = parameters.SearchTerm?.Trim();
+
+        var filtrados = _beneficiarios
+            .Where(b => string.IsNullOrEmpty(term)
+                        || b.Nombres.Contains(term, StringComparison.OrdinalIgnoreCase)
+                        || b.Apellidos.Contains(term, StringComparison.OrdinalIgnoreCase)
+                        || b.Documento.Numero.Contains(term, StringComparison.OrdinalIgnoreCase))
             .OrderBy(b => b.Apellidos, StringComparer.Ordinal)
             .ThenBy(b => b.Nombres, StringComparer.Ordinal)
             .ThenBy(b => b.Id)
-            .Skip((pagina - 1) * tamanoPagina)
-            .Take(tamanoPagina)
             .ToList();
 
-        return Task.FromResult((items, _beneficiarios.Count));
+        var items = filtrados.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult(PagedResponse<Beneficiario>.Create(items, filtrados.Count, pageNumber, pageSize));
     }
 
     public Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default)

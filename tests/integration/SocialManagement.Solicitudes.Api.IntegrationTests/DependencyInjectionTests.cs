@@ -1,4 +1,5 @@
 using Amazon.S3;
+using AutoMapper;
 using Amazon.SQS;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,15 @@ namespace SocialManagement.Solicitudes.Api.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class DependencyInjectionTests(SolicitudesApiFactory factory) : IClassFixture<SolicitudesApiFactory>
 {
+    [Fact]
+    public void Resuelve_el_mapeador_de_AutoMapper_aunque_aun_no_haya_perfiles()
+    {
+        // AddApplication y AddPresentation ya registran AutoMapper: el primer perfil de Solicitudes se cargará solo.
+        var mapper = factory.Services.GetRequiredService<IMapper>();
+
+        mapper.ConfigurationProvider.AssertConfigurationIsValid();
+    }
+
     [Fact]
     public void Resuelve_el_DbContext_propio_del_servicio()
     {

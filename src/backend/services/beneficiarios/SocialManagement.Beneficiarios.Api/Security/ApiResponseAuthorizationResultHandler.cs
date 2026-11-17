@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Extensions;
 
 namespace SocialManagement.Beneficiarios.Api.Security;

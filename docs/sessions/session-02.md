@@ -486,13 +486,13 @@ verificador del DNI). Si una regla no está en el código, la prueba debe fallar
 | Archivo | Cambio |
 |---------|--------|
 | `Domain/Entities/Beneficiario.cs` | **Nuevo**: entidad con invariantes |
-| `Domain/ValueObjects/DocumentoIdentidad.cs` | **Nuevo**: value object |
+| `Domain/ValueObjects/Beneficiarios/DocumentoIdentidad.cs` | **Nuevo**: value object |
 | `Domain/Enums/TipoDocumentoIdentidad.cs`, `EstadoBeneficiario.cs` | **Nuevos** |
 | `Domain/Exceptions/BeneficiarioInvalidoException.cs`, `DocumentoIdentidadInvalidoException.cs`, `BeneficiarioDuplicadoException.cs` | **Nuevos** |
 | `Application/Interfaces/IBeneficiarioRepository.cs` | **Nuevo**: puerto de persistencia |
 | `Application/DTOs/BeneficiarioDto.cs` | **Nuevo** |
 | `Application/Features/RegistrarBeneficiario/*`, `ConsultarBeneficiario/*` | **Nuevos**: casos de uso |
-| `Application/DependencyInjection.cs` | Comentario: por qué los handlers aún no se registran |
+| `Application/DependencyInjection/DependencyInjection.cs` | Comentario: por qué los handlers aún no se registran |
 | `tests/unit/SocialManagement.Beneficiarios.Domain.UnitTests/` | **Nuevo** |
 | `tests/unit/SocialManagement.Beneficiarios.Application.UnitTests/` | **Nuevo** |
 | `tests/unit/SocialManagement.Architecture.Tests/DomainModelRulesTests.cs` | **Nuevo**: reglas del modelo de dominio |

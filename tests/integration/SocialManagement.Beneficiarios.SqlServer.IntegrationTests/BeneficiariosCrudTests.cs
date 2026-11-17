@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Domain.Entities;
 using SocialManagement.Beneficiarios.Domain.Enums;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.SqlServer.IntegrationTests;
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Authentication;
 
 namespace SocialManagement.Beneficiarios.Api.Security;
 

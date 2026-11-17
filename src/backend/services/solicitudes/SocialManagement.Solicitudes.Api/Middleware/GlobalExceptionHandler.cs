@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using SocialManagement.Solicitudes.Api.Contracts;
+using SocialManagement.Solicitudes.Api.Contracts.Common;
 using SocialManagement.Solicitudes.Api.Controllers;
 using SocialManagement.Solicitudes.Api.Extensions;
 using SocialManagement.Solicitudes.Domain.Exceptions;

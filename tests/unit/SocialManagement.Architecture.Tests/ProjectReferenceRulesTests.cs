@@ -37,12 +37,14 @@ public sealed class ProjectReferenceRulesTests
     /// Paquetes permitidos en Application: ninguno es infraestructura, HTTP ni persistencia.
     /// - Abstracción de DI (solo interfaces).
     /// - FluentValidation: validación de los datos de entrada de los casos de uso.
+    /// - AutoMapper: mapeo de entidades a DTOs (sin HTTP ni persistencia).
     /// </summary>
     private static readonly string[] AllowedApplicationPackages =
     [
         "Microsoft.Extensions.DependencyInjection.Abstractions",
         "FluentValidation",
         "FluentValidation.DependencyInjectionExtensions",
+        "AutoMapper",
     ];
 
     [Theory]

@@ -174,7 +174,7 @@ npx ng test --watch=false
 - `.editorconfig` define el estilo (namespaces de archivo, `_camelCase` para campos privados, LF).
 - Versiones de paquetes solo en `Directory.Packages.props`.
 - **Un tipo por archivo**, con el mismo nombre que el tipo (verificado por `SourceFileConventionsTests`). Los modelos
-  HTTP van en `Api/Contracts/`; los endpoints puntuales se escriben como Minimal APIs (`Api/Endpoints/` + `app.MapGet`)
+  HTTP van en `Api/Contracts/<Grupo>/` y los value objects en `Domain/ValueObjects/<Entidad>/`, agrupados por entidad; los endpoints puntuales se escriben como Minimal APIs (`Api/Endpoints/` + `app.MapGet`)
   y los recursos con varias operaciones como controllers que heredan de `BaseApiController`
   (ver [architecture.md](architecture.md#convenciones-de-la-capa-api)).
 - En CI, cualquier advertencia de compilación es un error (`TreatWarningsAsErrors` cuando `CI=true`).

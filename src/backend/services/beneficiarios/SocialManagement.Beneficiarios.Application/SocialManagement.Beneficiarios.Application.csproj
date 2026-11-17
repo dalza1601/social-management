@@ -3,7 +3,7 @@
   <!--
     Capa de APLICACIÓN.
     Regla: solo depende de Domain. Se permiten la abstracción de DI de Microsoft (solo la interfaz
-    IServiceCollection) y FluentValidation (biblioteca de validación, sin HTTP ni infraestructura).
+    IServiceCollection), FluentValidation (validación) y AutoMapper (mapeo); ninguna es HTTP ni infraestructura.
   -->
   <PropertyGroup>
     <RootNamespace>SocialManagement.Beneficiarios.Application</RootNamespace>
@@ -18,6 +18,8 @@
     <!-- Validación de los datos de entrada (comandos y consultas) antes de crear objetos de dominio. -->
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <!-- Mapeo entidad → DTO con perfiles (carpeta Mappings) y registro con AddAutoMapper. -->
+    <PackageReference Include="AutoMapper" />
   </ItemGroup>
 
 </Project>

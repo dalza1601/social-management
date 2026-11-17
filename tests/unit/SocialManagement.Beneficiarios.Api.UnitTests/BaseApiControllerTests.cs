@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Controllers;
 
 namespace SocialManagement.Beneficiarios.Api.UnitTests;

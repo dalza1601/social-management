@@ -1,8 +1,9 @@
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api;
+using SocialManagement.Beneficiarios.Api.Contracts.Diagnostics;
 using SocialManagement.Beneficiarios.Api.Endpoints;
 using SocialManagement.Beneficiarios.Api.Extensions;
 using SocialManagement.Beneficiarios.Application;
-using SocialManagement.Beneficiarios.Infrastructure.DependencyInjection;
+using SocialManagement.Beneficiarios.Infrastructure;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,11 +15,12 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
-// Composición por capas: cada capa expone un único método de registro.
+// Composición por capas: cada capa de Clean Architecture tiene su DependencyInjection/DependencyInjection.cs con un único método.
+// (Domain no tiene: no registra servicios.)
 builder.Services
     .AddApplication()
     .AddInfrastructure()
-    .AddApiPresentation();
+    .AddPresentation();
 
 var app = builder.Build();
 

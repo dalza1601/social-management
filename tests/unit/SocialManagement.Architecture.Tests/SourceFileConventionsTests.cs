@@ -45,7 +45,7 @@ public sealed partial class SourceFileConventionsTests
     {
         // Evita que las pruebas anteriores pasen "en vacío" si cambia el formato del código.
         var file = Path.Combine(RepositoryPaths.Root, "src", "backend", "services", "beneficiarios",
-            "SocialManagement.Beneficiarios.Api", "Contracts", "DemoStatusResponse.cs");
+            "SocialManagement.Beneficiarios.Api", "Contracts", "Diagnostics", "DemoStatusResponse.cs");
 
         Assert.Equal(["DemoStatusResponse"], TopLevelTypes(file));
     }

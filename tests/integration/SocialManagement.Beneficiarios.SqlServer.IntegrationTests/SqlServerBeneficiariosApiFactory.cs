@@ -6,7 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Authentication;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 namespace SocialManagement.Beneficiarios.SqlServer.IntegrationTests;

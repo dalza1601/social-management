@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SocialManagement.Beneficiarios.Api.Configuration;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Diagnostics;
 
 namespace SocialManagement.Beneficiarios.Api.Endpoints;
 

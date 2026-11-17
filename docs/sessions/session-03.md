@@ -169,6 +169,12 @@ están escritas una sola vez.
 | `PUT` | `/api/v1/beneficiarios/{id}` | **200** | 400 · 404 · 409 documento de otro beneficiario |
 | `PATCH` | `/api/v1/beneficiarios/{id}/desactivar` | **200** (también si ya estaba inactivo) | 400 Id ≤ 0 · 404 |
 
+> **Actualización (17/11/2026):** el listado ahora es
+> `GET /api/v1/beneficiarios?pageNumber=1&pageSize=10&searchTerm=...&sort=...` y responde `PagedResponse<T>` (`items`,
+> `totalCount`, `totalPages`, `hasPreviousPage`, `hasNextPage`), con búsqueda y orden. Los nombres `pagina`, `tamanoPagina`,
+> `ListarBeneficiariosQuery` y `PagedResult<T>` de esta guía son los de la sesión 03. Diseño actual en
+> [architecture.md](../architecture.md#listados-paginación-búsqueda-y-orden).
+
 **Identificadores enteros.** `{id}` es un `int` (`/api/v1/beneficiarios/25`) generado por SQL Server
 (`IDENTITY(1,1)`) al registrar; la respuesta 201 lo devuelve en `data.id` y en `Location`. La ruta usa la restricción
 `{id:int}`: un texto como `abc` no coincide con la ruta (404) y un `0` o negativo lo rechaza la validación (400).
@@ -177,8 +183,8 @@ El proyecto **no usa GUID** en ninguna parte (regla verificada por `IdentifierRu
 Directo: `http://localhost:8081/api/v1/beneficiarios` · Gateway: `http://localhost:8080/api/v1/beneficiarios`
 (ruta `beneficiarios-versioned-route`, sin reescritura). Swagger UI: <http://localhost:8081/swagger>.
 
-DTOs de entrada en la API (`Contracts/RegistrarBeneficiarioRequest`, `ActualizarBeneficiarioRequest`) con
-`ToCommand()`; de salida, `BeneficiarioDto` y `PagedResult<T>` de Application. Los enums viajan como texto
+DTOs de entrada en la API (`Contracts/Beneficiarios/RegistrarBeneficiarioRequest`, `ActualizarBeneficiarioRequest`) que se convierten en comandos (hoy con AutoMapper: `Mappings/BeneficiarioContractsProfile`; en esta sesión era
+`ToCommand()`); de salida, `BeneficiarioDto` y `PagedResult<T>` de Application. Los enums viajan como texto
 (`"tipoDocumento": "Dni"`).
 
 ```http
@@ -372,7 +378,7 @@ Revisa siempre lo que genera la IA: es frecuente que proponga `[Key]` en la enti
 | `Application/DTOs/PagedResult.cs`, `IDatosPersonalesBeneficiario.cs` | **Nuevos** |
 | `Application/Validators/*` | Validadores de listar, actualizar y desactivar; reglas compartidas con `Include` |
 | `Application/Interfaces/IBeneficiarioRepository.cs` | `ListarAsync` |
-| `Application/DependencyInjection.cs` | Registro de los 5 casos de uso |
+| `Application/DependencyInjection/DependencyInjection.cs` | Registro de los 5 casos de uso |
 | `Infrastructure/Repositories/BeneficiarioRepository.cs` | **Nuevo**: repositorio EF Core |
 | `Infrastructure/Persistence/BeneficiariosDbContext.cs` | `DbSet<Beneficiario>`, `IUnitOfWork` |
 | `Infrastructure/Persistence/Configurations/BeneficiarioConfiguration.cs` | Mapeo completo (owned type, índice único) |
@@ -380,9 +386,9 @@ Revisa siempre lo que genera la IA: es frecuente que proponga `[Key]` en la enti
 | `Infrastructure/Persistence/BeneficiariosDesignTimeDbContextFactory.cs` | **Nuevo**: base de `dotnet ef` (`SM_BENEFICIARIOS_DB` o LocalDB) |
 | `Infrastructure/Persistence/DatabaseMigrationExtensions.cs`, `Configurations/PersistenceOptions.cs` | **Nuevos**: migrar al iniciar (opcional) |
 | `Api/Controllers/BeneficiariosController.cs` | **Nuevo**: CRUD |
-| `Api/Contracts/RegistrarBeneficiarioRequest.cs`, `ActualizarBeneficiarioRequest.cs` | **Nuevos** DTOs de entrada |
+| `Api/Contracts/Beneficiarios/RegistrarBeneficiarioRequest.cs`, `ActualizarBeneficiarioRequest.cs` | **Nuevos** DTOs de entrada |
 | `Api/Middleware/GlobalExceptionHandler.cs` | 409 para `DomainConflictException` |
-| `Api/Extensions/ApiServiceCollectionExtensions.cs` | Enums como texto en JSON, rutas en minúsculas |
+| `Api/DependencyInjection/DependencyInjection.cs` (antes `Extensions/ApiServiceCollectionExtensions.cs`) | Enums como texto en JSON, rutas en minúsculas |
 | `Api/Program.cs`, `appsettings.json` | `ApplyDatabaseMigrationsAsync`, sección `Persistence` |
 | `Gateway/appsettings.json` | Ruta `beneficiarios-versioned-route` |
 | `infra/docker/docker-compose.yml` | `Persistence__ApplyMigrationsAtStartup: "true"` en `beneficiarios-api` |

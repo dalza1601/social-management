@@ -97,7 +97,9 @@ public sealed class DomainModelRulesTests
 
     private static IEnumerable<Type> DomainTypes(string service, string folder) =>
         DomainAssembly(service).GetTypes()
-            .Where(t => t.Namespace == $"SocialManagement.{service}.Domain.{folder}"
+            // Incluye las subcarpetas por entidad (p. ej. ValueObjects/Beneficiarios).
+            .Where(t => (t.Namespace == $"SocialManagement.{service}.Domain.{folder}"
+                         || t.Namespace?.StartsWith($"SocialManagement.{service}.Domain.{folder}.", StringComparison.Ordinal) == true)
                         && t is { IsClass: true, IsNested: false }
                         && !t.Name.StartsWith('<'));
 }

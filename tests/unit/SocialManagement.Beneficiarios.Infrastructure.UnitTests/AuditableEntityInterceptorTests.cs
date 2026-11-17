@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
 using SocialManagement.Beneficiarios.Domain.Entities;
 using SocialManagement.Beneficiarios.Domain.Enums;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence.Interceptors;
 

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using SocialManagement.Beneficiarios.Domain.Entities;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 namespace SocialManagement.Beneficiarios.Infrastructure.UnitTests;

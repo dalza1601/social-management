@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using SocialManagement.Beneficiarios.Api.Configuration;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Diagnostics;
 using SocialManagement.Beneficiarios.Api.Endpoints;
 
 namespace SocialManagement.Beneficiarios.Api.UnitTests;

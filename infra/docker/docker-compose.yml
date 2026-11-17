@@ -41,6 +41,8 @@ x-dotnet-service-environment: &dotnet-service-environment
   ApiDocumentation__Enabled: ${API_DOCS_ENABLED:-true}
   ApiDocumentation__Access__UserName: ${API_DOCS_USER:-}
   ApiDocumentation__Access__Password: ${API_DOCS_PASSWORD:-}
+  # Licencia de AutoMapper (opcional): sin clave funciona y registra un aviso en el log.
+  AutoMapper__LicenseKey: ${AUTOMAPPER_LICENSE_KEY:-}
   # Proxies de confianza para X-Forwarded-* (el Gateway está en la red de Compose, cuya subred
   # asigna Docker dentro de estos rangos privados). En producción usa la IP/red exacta del Gateway.
   ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12

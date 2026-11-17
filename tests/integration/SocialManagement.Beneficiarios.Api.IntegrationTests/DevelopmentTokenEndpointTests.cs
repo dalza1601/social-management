@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.IdentityModel.JsonWebTokens;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Authentication;
 
 namespace SocialManagement.Beneficiarios.Api.IntegrationTests;
 

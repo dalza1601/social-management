@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Authentication;
 using SocialManagement.Beneficiarios.Api.Security;
 
 namespace SocialManagement.Beneficiarios.Api.Endpoints;

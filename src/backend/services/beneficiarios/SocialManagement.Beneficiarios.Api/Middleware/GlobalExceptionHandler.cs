@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Controllers;
 using SocialManagement.Beneficiarios.Api.Extensions;
 using SocialManagement.Beneficiarios.Domain.Exceptions;

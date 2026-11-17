@@ -1,6 +1,6 @@
 using FluentValidation;
 using SocialManagement.Beneficiarios.Application.DTOs;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.Validators;
 

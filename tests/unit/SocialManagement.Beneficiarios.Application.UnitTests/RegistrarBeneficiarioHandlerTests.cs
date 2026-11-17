@@ -21,7 +21,8 @@ public sealed class RegistrarBeneficiarioHandlerTests
             new RegistrarBeneficiarioCommandValidator(),
             _repository,
             _unitOfWork,
-            new FakeTimeProvider(Ahora));
+            new FakeTimeProvider(Ahora),
+            MapperDePrueba.Crear());
 
     private static RegistrarBeneficiarioCommand ComandoValido(string dni = "12345678") =>
         new("Ana María", "Quispe Mamani", TipoDocumentoIdentidad.Dni, dni);

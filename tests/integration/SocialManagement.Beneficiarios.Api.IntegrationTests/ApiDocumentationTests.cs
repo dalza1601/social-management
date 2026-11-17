@@ -89,6 +89,20 @@ public sealed class ApiDocumentationTests(BeneficiariosApiFactory factory) : ICl
     }
 
     [Fact]
+    public async Task El_listado_documenta_paginacion_busqueda_y_orden_en_la_query()
+    {
+        await using var stream = await factory.CreateClient().GetStreamAsync("/openapi/v1.json", Ct);
+        var document = (await OpenApiDocument.LoadAsync(stream, cancellationToken: Ct)).Document!;
+
+        var parameters = document.Paths["/api/v1/beneficiarios"]!.Operations![HttpMethod.Get].Parameters!;
+
+        Assert.Equal(
+            ["pageNumber", "pageSize", "searchTerm", "sort"],
+            parameters.Where(p => p.In == ParameterLocation.Query).Select(p => p.Name).Order(StringComparer.Ordinal));
+        Assert.All(parameters, p => Assert.False(string.IsNullOrWhiteSpace(p.Description)));   // comentarios XML del contrato
+    }
+
+    [Fact]
     public async Task Detras_del_Gateway_el_documento_anuncia_la_URL_publica_con_HTTPS_y_prefijo()
     {
         using var behindProxy = WithRemoteIp(factory, IPAddress.Loopback);   // proxy de confianza

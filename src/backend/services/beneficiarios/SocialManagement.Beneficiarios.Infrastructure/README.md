@@ -9,7 +9,7 @@ Implementa los detalles técnicos. Depende de `Application` y `Domain`.
 | `Repositories`       | Implementaciones de los repositorios definidos en `Application/Interfaces`.                |
 | `ExternalServices`   | Clientes de servicios externos. Hoy: `Aws/AwsClientFactory` (S3 y SQS sobre LocalStack).   |
 | `Messaging`          | Conexión compartida con RabbitMQ y su health check. Futuro: publicador y consumidores.     |
-| `DependencyInjection`| `AddInfrastructure()`: registra todo lo anterior y valida la configuración al iniciar.     |
+| `DependencyInjection` | `DependencyInjection.cs`: `AddInfrastructure()`: registra todo lo anterior y valida la configuración al iniciar. |
 
 Reglas:
 

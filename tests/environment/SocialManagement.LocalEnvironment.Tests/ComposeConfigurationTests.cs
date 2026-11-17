@@ -133,6 +133,14 @@ public sealed partial class ComposeConfigurationTests
         Assert.Equal("Operador", environment["DevelopmentTokens__Users__1__Roles__0"]);
     }
 
+    [Theory]
+    [InlineData("beneficiarios-api")]
+    [InlineData("solicitudes-api")]
+    public void Cada_API_recibe_la_licencia_opcional_de_AutoMapper_por_variable(string service)
+    {
+        Assert.Equal("${AUTOMAPPER_LICENSE_KEY:-}", _compose.Services[service].Environment["AutoMapper__LicenseKey"]);
+    }
+
     [Fact]
     public void Env_example_trae_una_clave_JWT_de_desarrollo_de_al_menos_32_caracteres()
     {
@@ -186,7 +194,7 @@ public sealed partial class ComposeConfigurationTests
     [Fact]
     public void Las_credenciales_provienen_de_variables_y_no_estan_escritas_en_el_compose()
     {
-        var secretKeys = new[] { "PASSWORD", "PASS", "AUTH_TOKEN", "SECRET", "SIGNINGKEY" };
+        var secretKeys = new[] { "PASSWORD", "PASS", "AUTH_TOKEN", "SECRET", "SIGNINGKEY", "LICENSEKEY" };
 
         foreach (var service in _compose.Services.Values)
         {

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Beneficiarios;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Security;
+using SocialManagement.Beneficiarios.Application.Common.Pagination;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Features.ActualizarBeneficiario;
 using SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficiario;
@@ -34,7 +36,7 @@ public sealed class BeneficiariosController : BaseApiController
         RegistrarBeneficiarioRequest request,
         CancellationToken cancellationToken)
     {
-        var beneficiario = await UseCase<RegistrarBeneficiarioHandler>().HandleAsync(request.ToCommand(), cancellationToken);
+        var beneficiario = await UseCase<RegistrarBeneficiarioHandler>().HandleAsync(Mapper.Map<RegistrarBeneficiarioCommand>(request), cancellationToken);
         return ApiCreated(nameof(ObtenerPorId), new { id = beneficiario.Id }, beneficiario, "Beneficiario registrado.");
     }
 
@@ -51,22 +53,21 @@ public sealed class BeneficiariosController : BaseApiController
         return ApiOkOrNotFound(beneficiario, NoExiste(id));
     }
 
-    /// <summary>Lista los beneficiarios con paginación, ordenados por apellidos y nombres.</summary>
-    /// <param name="pagina">Número de página, desde 1.</param>
-    /// <param name="tamanoPagina">Registros por página, de 1 a 100.</param>
+    /// <summary>Lista los beneficiarios con paginación, búsqueda y orden.</summary>
+    /// <param name="request">Página (pageNumber, pageSize), búsqueda (searchTerm) y orden (sort).</param>
     /// <param name="cancellationToken">Cancelación de la petición.</param>
     /// <response code="200">Página de resultados con el total de registros y de páginas.</response>
-    /// <response code="400">Parámetros de paginación no válidos.</response>
+    /// <response code="400">Parámetros de paginación, búsqueda u orden no válidos.</response>
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.LecturaBeneficiarios)]
-    [ProducesResponseType<ApiResponse<PagedResult<BeneficiarioDto>>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<PagedResult<BeneficiarioDto>>>> Listar(
-        [FromQuery] int pagina = 1,
-        [FromQuery] int tamanoPagina = ListarBeneficiariosQuery.TamanoPaginaPorDefecto,
-        CancellationToken cancellationToken = default)
+    [ProducesResponseType<ApiResponse<PagedResponse<BeneficiarioDto>>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<PagedResponse<BeneficiarioDto>>>> Listar(
+        [FromQuery] ListarBeneficiariosRequest request,
+        CancellationToken cancellationToken)
     {
-        var resultado = await UseCase<ListarBeneficiariosHandler>().HandleAsync(new ListarBeneficiariosQuery(pagina, tamanoPagina), cancellationToken);
-        return ApiOk(resultado);
+        var parameters = Mapper.Map<BeneficiarioQueryParameters>(request);
+        var page = await UseCase<ListarBeneficiariosHandler>().HandleAsync(parameters, cancellationToken);
+        return ApiOk(page);
     }
 
     /// <summary>Actualiza los datos personales de un beneficiario.</summary>
@@ -84,7 +85,8 @@ public sealed class BeneficiariosController : BaseApiController
         ActualizarBeneficiarioRequest request,
         CancellationToken cancellationToken)
     {
-        var beneficiario = await UseCase<ActualizarBeneficiarioHandler>().HandleAsync(request.ToCommand(id), cancellationToken);
+        var command = Mapper.Map<ActualizarBeneficiarioCommand>(request) with { Id = id };
+        var beneficiario = await UseCase<ActualizarBeneficiarioHandler>().HandleAsync(command, cancellationToken);
         return ApiOkOrNotFound(beneficiario, NoExiste(id));
     }
 

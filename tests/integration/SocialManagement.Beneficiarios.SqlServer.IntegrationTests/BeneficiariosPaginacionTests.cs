@@ -1,4 +1,5 @@
 using System.Net;
+using SocialManagement.Beneficiarios.Application.Common.Pagination;
 using SocialManagement.Beneficiarios.Application.DTOs;
 
 namespace SocialManagement.Beneficiarios.SqlServer.IntegrationTests;
@@ -25,22 +26,22 @@ public sealed class BeneficiariosPaginacionTests(SqlServerBeneficiariosApiFactor
             Assert.Equal(HttpStatusCode.Created, creado.StatusCode);
         }
 
-        var respuesta = await client.GetAsync($"{BeneficiariosApiClient.Ruta}?pagina=2&tamanoPagina=2", Ct);
+        var respuesta = await client.GetAsync($"{BeneficiariosApiClient.Ruta}?pageNumber=2&pageSize=2", Ct);
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
-        var pagina = (await respuesta.LeerAsync<PagedResult<BeneficiarioDto>>()).Data!;
+        var pagina = (await respuesta.LeerAsync<PagedResponse<BeneficiarioDto>>()).Data!;
         // Orden: Flores, Huamán, Quispe Ana, Quispe Beatriz, Vargas → la página 2 trae a los dos Quispe.
         Assert.Equal(["Ana Quispe", "Beatriz Quispe"], pagina.Items.Select(b => b.NombreCompleto));
-        Assert.Equal(5, pagina.TotalRegistros);
-        Assert.Equal(3, pagina.TotalPaginas);
-        Assert.True(pagina.TieneAnterior);
-        Assert.True(pagina.TieneSiguiente);
+        Assert.Equal(5, pagina.TotalCount);
+        Assert.Equal(3, pagina.TotalPages);
+        Assert.True(pagina.HasPreviousPage);
+        Assert.True(pagina.HasNextPage);
     }
 
     [Theory]
-    [InlineData("pagina=0")]
-    [InlineData("tamanoPagina=101")]
-    [InlineData("pagina=abc")]
+    [InlineData("pageNumber=0")]
+    [InlineData("pageSize=101")]
+    [InlineData("pageNumber=abc")]
     public async Task Parametros_de_paginacion_invalidos_responden_400(string query)
     {
         Assert.SkipUnless(SqlServerBeneficiariosApiFactory.IsConfigured, SqlServerBeneficiariosApiFactory.SkipReason);

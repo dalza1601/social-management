@@ -1,8 +1,9 @@
+using AutoMapper;
 using FluentValidation;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Domain.Exceptions;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.Features.ActualizarBeneficiario;
 
@@ -10,7 +11,8 @@ namespace SocialManagement.Beneficiarios.Application.Features.ActualizarBenefici
 public sealed class ActualizarBeneficiarioHandler(
     IValidator<ActualizarBeneficiarioCommand> validator,
     IBeneficiarioRepository repository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IMapper mapper)
 {
     /// <returns>Los datos actualizados, o <c>null</c> si el beneficiario no existe.</returns>
     /// <exception cref="ValidationException">Los datos de entrada no son válidos.</exception>
@@ -38,6 +40,6 @@ public sealed class ActualizarBeneficiarioHandler(
         beneficiario.ActualizarDatos(command.Nombres, command.Apellidos, documento);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return BeneficiarioDto.Desde(beneficiario);
+        return mapper.Map<BeneficiarioDto>(beneficiario);
     }
 }

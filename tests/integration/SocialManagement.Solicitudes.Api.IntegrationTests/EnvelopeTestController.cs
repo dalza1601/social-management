@@ -2,7 +2,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SocialManagement.Solicitudes.Api.Contracts;
+using SocialManagement.Solicitudes.Api.Contracts.Common;
 using SocialManagement.Solicitudes.Api.Controllers;
 
 namespace SocialManagement.Solicitudes.Api.IntegrationTests;

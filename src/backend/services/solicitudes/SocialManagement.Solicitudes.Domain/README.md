@@ -5,7 +5,7 @@ Núcleo del microservicio. No depende de ningún framework, ORM, API ni proveedo
 | Carpeta         | Qué contendrá                                                                  |
 |-----------------|--------------------------------------------------------------------------------|
 | `Entities`      | Entidades y agregados con identidad propia.                                    |
-| `ValueObjects`  | Objetos inmutables comparados por valor (documento de identidad, dirección…).  |
+| `ValueObjects`  | Objetos inmutables comparados por valor, agrupados por entidad (`ValueObjects/<Entidad>/`). |
 | `Enums`         | Enumeraciones del dominio.                                                     |
 | `Events`        | Eventos de dominio que expresan hechos ocurridos dentro del agregado.          |
 | `Exceptions`    | Excepciones de reglas de dominio. Todas heredan de `DomainException`.          |

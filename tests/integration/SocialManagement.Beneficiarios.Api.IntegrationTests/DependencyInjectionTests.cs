@@ -1,4 +1,5 @@
 using Amazon.S3;
+using AutoMapper;
 using Amazon.SQS;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,27 @@ public sealed class DependencyInjectionTests(BeneficiariosApiFactory factory) : 
 
         // Misma instancia: lo que registran los repositorios se confirma con IUnitOfWork.SaveChangesAsync.
         Assert.Same(dbContext, unitOfWork);
+    }
+
+    [Fact]
+    public void Registra_por_convencion_todos_los_casos_de_uso_de_Application()
+    {
+        // AddApplication registra cada clase *Handler sin listarla: un caso de uso nuevo queda disponible solo.
+        var handlers = typeof(RegistrarBeneficiarioHandler).Assembly.GetTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false, IsNested: false } && type.Name.EndsWith("Handler", StringComparison.Ordinal))
+            .ToList();
+        using var scope = factory.Services.CreateScope();
+
+        Assert.Equal(5, handlers.Count);
+        Assert.All(handlers, handler => Assert.NotNull(scope.ServiceProvider.GetService(handler)));
+    }
+
+    [Fact]
+    public void El_mapeador_reune_los_perfiles_de_Api_y_Application_y_es_valido()
+    {
+        var mapper = factory.Services.GetRequiredService<IMapper>();
+
+        mapper.ConfigurationProvider.AssertConfigurationIsValid();
     }
 
     [Fact]

@@ -4,11 +4,13 @@ Capa de presentación (ASP.NET Core Web API con Controllers). Depende de `Applic
 
 | Carpeta         | Contenido                                                                     |
 |-----------------|-------------------------------------------------------------------------------|
-| `Controllers`   | `BaseApiController`: base de todos los controllers de recursos (ruta versionada `api/v{version:apiVersion}/[controller]`, `ApiResponse<T>`, `UseCase<T>()`, `Logger`). |
+| `Controllers`   | `BaseApiController`: base de todos los controllers de recursos (ruta versionada `api/v{version:apiVersion}/[controller]`, `ApiResponse<T>`, `UseCase<T>()`, `Mapper`, `Logger`). |
 | `Endpoints`     | Funciones de Minimal APIs, registradas con `app.MapGet` en `Program.cs`: `GetVersionEndpoint` (`GET /version`) y `GetDemoStatusEndpoint` (`GET /api/demo/status`). |
-| `Contracts`     | Modelos HTTP, un tipo por archivo: `ApiResponse<T>`, `ApiError`, `VersionResponse`, `DemoStatusResponse`. |
+| `Contracts`     | Modelos HTTP, un tipo por archivo, agrupados por entidad o funcionalidad: `Beneficiarios/` (requests del CRUD), `Authentication/` (tokens de desarrollo), `Diagnostics/` (`VersionResponse`, `DemoStatusResponse`) y `Common/` (`ApiResponse<T>`, `ApiError`). |
 | `Middleware`    | `GlobalExceptionHandler`: excepciones → ProblemDetails + log.                  |
-| `Extensions`    | Registro de servicios de la API, pipeline HTTP y escritura JSON de health checks. |
+| `DependencyInjection` | `DependencyInjection.cs`: `AddPresentation()`: registro de la capa Api (controllers, OpenAPI, errores, AutoMapper, seguridad). |
+| `Mappings`      | Perfiles de AutoMapper de la Api: request → comando. |
+| `Extensions`    | Un archivo por tema que usa `DependencyInjection/DependencyInjection.cs` (versionado, documentación, seguridad), pipeline HTTP y health checks. |
 | `Configuration` | Opciones propias de la API (`ServiceInfoOptions`).                            |
 
 ## Endpoints técnicos

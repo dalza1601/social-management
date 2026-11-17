@@ -94,16 +94,43 @@ Infrastructure/Messaging/RabbitMqIntegrationEventPublisher.cs       ← implemen
 
 ### Composición (Dependency Injection)
 
-Cada capa expone **un único método** de registro y `Program.cs` solo los encadena:
+Cada capa que registra servicios tiene **su propio `DependencyInjection.cs` dentro de la carpeta `DependencyInjection/`**, con una clase
+estática `DependencyInjection` (en el namespace de la capa) y **un único método**. `Program.cs` solo los encadena:
 
 ```csharp
 builder.Services
-    .AddApplication()        // Application/DependencyInjection.cs
-    .AddInfrastructure()     // Infrastructure/DependencyInjection/InfrastructureServiceCollectionExtensions.cs
-    .AddApiPresentation();   // Api/Extensions/ApiServiceCollectionExtensions.cs
+    .AddApplication()      // Application/DependencyInjection/DependencyInjection.cs
+    .AddInfrastructure()   // Infrastructure/DependencyInjection/DependencyInjection.cs
+    .AddPresentation();    // Api/DependencyInjection/DependencyInjection.cs
 ```
 
+| Capa | `DependencyInjection.cs` registra |
+|------|-----------------------------------|
+| Domain | **No tiene**: no depende de ningún paquete ni registra servicios. |
+| Application | Por convención, buscando en el ensamblado (sin listas manuales): validadores de FluentValidation, perfiles de AutoMapper (`Mappings/`) y casos de uso (toda clase `*Handler` de `Features/`, *scoped*). Un caso de uso nuevo queda registrado solo. |
+| Infrastructure | `DbContext`, `IUnitOfWork`, repositorios, interceptor de auditoría, RabbitMQ, AWS, Ollama y sus opciones validadas al iniciar. |
+| Api | Controllers, versionado, OpenAPI, ProblemDetails, manejo de excepciones, perfiles de AutoMapper de la Api, seguridad JWT y health check básico. Los temas largos están en `Extensions/` (un archivo por tema). |
+
+Se usa el contenedor nativo de .NET (`Microsoft.Extensions.DependencyInjection`), sin librerías extra.
 `Program.cs` activa `ValidateOnBuild` y `ValidateScopes`: si falta un registro, la aplicación no arranca.
+`DependencyInjectionConventionsTests` verifica esta estructura.
+
+### Mapeo de objetos (AutoMapper)
+
+| Perfil | Capa | Mapea | Reemplaza a |
+|--------|------|-------|-------------|
+| `Mappings/BeneficiarioProfile` | Application | `Beneficiario` → `BeneficiarioDto` | `BeneficiarioDto.Desde(...)` |
+| `Mappings/BeneficiarioContractsProfile` | Api | `RegistrarBeneficiarioRequest` → `RegistrarBeneficiarioCommand`, `ActualizarBeneficiarioRequest` → `ActualizarBeneficiarioCommand` | `request.ToCommand()` |
+| `Mappings/ContractConventionsProfile` | Api | Texto ausente (`null`) de un request → `""` en el comando, para que FluentValidation responda "es obligatorio" | `?? string.Empty` |
+
+- Los casos de uso reciben `IMapper` por constructor: `mapper.Map<BeneficiarioDto>(beneficiario)`. Los controllers
+  usan la propiedad `Mapper` de `BaseApiController`: `Mapper.Map<RegistrarBeneficiarioCommand>(request)`.
+- Solo se configura lo que **no** coincide por nombre (los datos del value object `Documento`). Las pruebas
+  `AssertConfigurationIsValid` fallan si un campo de destino queda sin origen.
+- **Licencia:** AutoMapper 16 se distribuye con licencia RPL-1.5 o comercial (Lucky Penny Software). La clave es opcional
+  y se lee de `AutoMapper:LicenseKey` (user-secrets, `AutoMapper__LicenseKey` en Docker desde `AUTOMAPPER_LICENSE_KEY`
+  de `.env`, o la variable `AUTOMAPPER_LICENSE_KEY`). Sin clave funciona igual y escribe un aviso en el log: lo permite
+  para desarrollo y pruebas, pero **en producción exige una licencia válida**.
 
 ### Reglas verificadas automáticamente
 
@@ -117,7 +144,10 @@ El proyecto `tests/unit/SocialManagement.Architecture.Tests` comprueba en cada c
 | Application no usa EF Core, ASP.NET Core, RabbitMQ, AWS ni YARP | `Assembly.GetReferencedAssemblies()`     |
 | Un microservicio no referencia proyectos de otro                | `.csproj` y ensamblados                  |
 | No existe una biblioteca "Shared/Common" de dominio             | Busca proyectos con esos nombres         |
-| Entidades y value objects sin setters ni constructores públicos | Reflexión sobre `Domain.Entities` y `Domain.ValueObjects` |
+| Entidades y value objects sin setters ni constructores públicos | Reflexión sobre `Domain.Entities` y `Domain.ValueObjects` (incluidas sus subcarpetas) |
+| Contracts y value objects agrupados en una carpeta por entidad, con el namespace igual a la carpeta | `GroupingConventionsTests` |
+| Cada capa (salvo Domain) tiene `DependencyInjection/DependencyInjection.cs` con `AddApplication` / `AddInfrastructure` / `AddPresentation`, y `Program.cs` los encadena | `DependencyInjectionConventionsTests` |
+| AutoMapper permitido en Application (solo mapeo, sin HTTP ni persistencia) | `ProjectReferenceRulesTests` |
 | Entidades sin atributos de persistencia (`[Key]`, `[Required]`...) | Reflexión: el mapeo va en `Infrastructure/Persistence/Configurations` |
 | Un tipo por archivo, con el nombre del tipo                      | `SourceFileConventionsTests` sobre `src` y `tests` |
 | Entidades con `Id` entero (`int`) y ningún uso del tipo `Guid`   | `IdentifierRulesTests`: reflexión sobre `Domain.Entities` y búsqueda en `src` y `tests` |
@@ -172,7 +202,8 @@ Todas las respuestas de error incluyen `traceId` para correlacionarlas con los l
 |------------------|-----------------|-------|----------------------|
 | Puntual o técnico (`/version`, `/api/demo/status`) | **Minimal API**: `app.MapGet` en `Program.cs` + función estática | `Api/Endpoints/` | DTO directo; errores en ProblemDetails |
 | Recurso con varias operaciones (CRUD de beneficiarios...) | **Controller** que hereda de `BaseApiController` | `Api/Controllers/` | `ApiResponse<T>` en éxitos y errores |
-| Modelos HTTP | `record` en su propio archivo | `Api/Contracts/` | — |
+| Modelos HTTP | `record` en su propio archivo, agrupado por entidad o funcionalidad | `Api/Contracts/<Grupo>/`: `Beneficiarios/`, `Authentication/`, `Diagnostics/` y `Common/` (sobre `ApiResponse`, `ApiError`) | — |
+| Value objects | Agrupados por la entidad a la que pertenecen | `Domain/ValueObjects/<Entidad en plural>/` (p. ej. `Beneficiarios/DocumentoIdentidad.cs`) | — |
 
 ### `BaseApiController`
 
@@ -197,7 +228,7 @@ repetirla en cada uno:
 
 | Error en un controller | Quién lo produce | HTTP |
 |------------------------|------------------|------|
-| Modelo inválido (tipos, JSON mal formado, `[Required]`) | `InvalidModelStateResponseFactory` (`AddApiPresentation`) | 400 |
+| Modelo inválido (tipos, JSON mal formado, `[Required]`) | `InvalidModelStateResponseFactory` (`Api/DependencyInjection/DependencyInjection.cs`) | 400 |
 | Datos de entrada inválidos (FluentValidation) | El caso de uso lanza `ValidationException` → `GlobalExceptionHandler` | 400 |
 | Sin token o token inválido (sesión 04) | JwtBearer + `ApiResponseAuthorizationResultHandler` | 401 |
 | Token válido sin el rol de la política | `ApiResponseAuthorizationResultHandler` | 403 |
@@ -221,6 +252,30 @@ Fuera de los controllers (Minimal APIs), los mismos errores usan ProblemDetails;
 | Paquete | `Asp.Versioning.OpenApi` (registro en `Extensions/ApiVersioningExtensions.cs`) |
 
 Los Minimal APIs técnicos (`/version`, `/health`, `/api/demo/status`) no se versionan.
+
+### Listados: paginación, búsqueda y orden
+
+`GET /api/v1/beneficiarios?pageNumber=1&pageSize=10&searchTerm=quispe&sort=-fechaRegistro`
+
+| Capa | Pieza | Responsabilidad |
+|------|-------|-----------------|
+| Api | `Contracts/Beneficiarios/ListarBeneficiariosRequest` | Parámetros planos de la query (`pageNumber`, `pageSize`, `searchTerm`, `sort`), documentados en OpenAPI |
+| Api | `Mappings/BeneficiarioContractsProfile` | Request plano → `BeneficiarioQueryParameters` (agrupa la página en un `PaginationRequest`) |
+| Application | `Common/Pagination/PaginationRequest` | Página pedida; `SafePageNumber` / `SafePageSize` la acotan (mínimo 1, máximo 100) |
+| Application | `Features/ListarBeneficiarios/BeneficiarioQueryParameters` | `(PaginationRequest Pagination, string? SearchTerm, string? Sort)` |
+| Application | `Validators/BeneficiarioQueryParametersValidator` | 400 si la página, el tamaño, la búsqueda (máx. 100) o el campo de orden no son válidos |
+| Application | `ListarBeneficiariosHandler` | Valida, pide la página al repositorio y la convierte a `PagedResponse<BeneficiarioDto>` (AutoMapper) |
+| Application | `Interfaces/IBeneficiarioRepository.ListarAsync(BeneficiarioQueryParameters)` | Puerto: devuelve `PagedResponse<Beneficiario>` |
+| Infrastructure | `Repositories/BeneficiarioRepository` | `AsNoTracking`, filtro `Contains` (LIKE) en nombres, apellidos y documento, `ApplySorting`, `CountAsync`, `Skip`/`Take` y `PagedResponse.Create` |
+| Application | `Common/Pagination/PagedResponse<T>` | `items`, `totalCount`, `pageNumber`, `pageSize`, `totalPages`, `hasPreviousPage`, `hasNextPage` |
+
+- **Orden:** `apellidos` (por defecto, luego nombres), `nombres`, `numeroDocumento`, `fechaRegistro`, `estado`; con `-` delante,
+  descendente. El `Id` siempre desempata al final, así las páginas no repiten ni saltan registros.
+- **Búsqueda:** en SQL Server, sin distinguir mayúsculas (intercalación por defecto). El total (`totalCount`) es el de la búsqueda.
+- **Valores fuera de rango:** el validador responde 400 con el campo (`PageNumber`, `PageSize`, `SearchTerm`, `Sort`).
+  `SafePageNumber`/`SafePageSize` son una segunda barrera por si alguien llama al repositorio sin validar.
+- Paginación y respuesta usan nombres en inglés (son técnicas, como el sobre `ApiResponse`); los datos del beneficiario
+  siguen en español (lenguaje del dominio).
 
 ### Validación de los datos de entrada (FluentValidation)
 

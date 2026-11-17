@@ -305,10 +305,10 @@ El entregable completo es [docs/microservices-design.md](../microservices-design
 | `Directory.Packages.props`, `Beneficiarios.Api.csproj` | **Nuevo** paquete `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.15 |
 | `Api/Extensions/SecurityExtensions.cs` | **Nuevo**: JWT Bearer, políticas, validación de configuración, `ICurrentUser`, emisor de tokens de desarrollo |
 | `Api/Security/*` | **Nuevos**: `Roles`, `AuthorizationPolicies`, `JwtOptions`, `JwtClaimTypes`, `DevelopmentTokenOptions`, `DevelopmentUserOptions`, `DevelopmentTokenIssuer`, `ApiResponseAuthorizationResultHandler`, `HttpContextCurrentUser`, `SecretComparer` |
-| `Api/Endpoints/IssueDevelopmentTokenEndpoint.cs`, `Api/Contracts/DevToken*.cs` | **Nuevos**: `POST /api/auth/dev-token` (solo Development) |
+| `Api/Endpoints/IssueDevelopmentTokenEndpoint.cs`, `Api/Contracts/Authentication/DevToken*.cs` | **Nuevos**: `POST /api/auth/dev-token` (solo Development) |
 | `Api/Extensions/ApiResponseFormatExtensions.cs` | **Nuevo**: `UsesApiResponseFormat()` compartido por excepciones y 401/403 (antes privado en `GlobalExceptionHandler`) |
 | `Api/Controllers/BeneficiariosController.cs` | `[Authorize(Policy = ...)]` en cada acción |
-| `Api/Program.cs`, `Extensions/ApiServiceCollectionExtensions.cs`, `Extensions/WebApplicationExtensions.cs` | Registro de la seguridad, `UseAuthentication`/`UseAuthorization`, ruta de tokens condicionada al ambiente |
+| `Api/Program.cs`, `Api/DependencyInjection/DependencyInjection.cs` (antes `Extensions/ApiServiceCollectionExtensions.cs`), `Extensions/WebApplicationExtensions.cs` | Registro de la seguridad, `UseAuthentication`/`UseAuthorization`, ruta de tokens condicionada al ambiente |
 | `Api/Configuration/OpenApi/BearerSecurityRequirementTransformer.cs` | 403 y "Roles permitidos" a partir de la política |
 | `Api/Extensions/ApiDocumentationExtensions.cs` | Swagger UI conserva la autorización (`EnablePersistAuthorization`) |
 | `Api/Middleware/ApiDocumentationAccessMiddleware.cs` | Usa `SecretComparer` (misma comparación en tiempo constante) |
@@ -321,6 +321,9 @@ El entregable completo es [docs/microservices-design.md](../microservices-design
 | `docs/microservices-design.md`, `docs/security.md` | **Nuevos** |
 | `docs/api-documentation.md`, `architecture.md`, `local-development.md`, `troubleshooting.md`, `roadmap.md`, `README.md` | Actualizados |
 | `tests/...` | Pruebas descritas en la sección 6; se eliminaron `TestBearerHandler` y `ProtectedTestController` de Beneficiarios (ya hay un esquema Bearer real) |
+| `Api/Contracts/*`, `Domain/ValueObjects/*` (ambos servicios) | **Reorganización (pedido del 17/11/2026):** contratos agrupados por entidad o funcionalidad (`Beneficiarios/`, `Authentication/`, `Diagnostics/`, `Common/`) y value objects por entidad (`ValueObjects/Beneficiarios/`); namespace igual a la carpeta. Regla nueva `GroupingConventionsTests`. Sin cambios de comportamiento ni de modelo de EF Core (`has-pending-model-changes`: sin cambios). Total tras la reorganización: 415 pruebas, 401 correctas, 0 errores, 14 omitidas. |
+| `DependencyInjection.cs` de Application, Infrastructure y Api; `Mappings/*` (ambos servicios) | **Reestructuración (pedido del 17/11/2026):** un `DependencyInjection.cs` en la carpeta `DependencyInjection/` de cada capa (salvo Domain) con `AddApplication` / `AddInfrastructure` / `AddPresentation`; casos de uso registrados por convención (`*Handler`); **AutoMapper 16.3.0** reemplaza a `BeneficiarioDto.Desde` y `ToCommand()`. Reglas nuevas `DependencyInjectionConventionsTests` y pruebas de perfiles. Total: 434 pruebas, 420 correctas, 0 errores, 14 omitidas. Ver [architecture.md](../architecture.md#composición-dependency-injection). |
+| Listado de beneficiarios (las 3 capas) | **Paginación, búsqueda y orden (pedido del 17/11/2026):** `PaginationRequest` (`SafePageNumber`/`SafePageSize`) y `PagedResponse<T>.Create` en `Application/Common/Pagination`; `BeneficiarioQueryParameters(Pagination, SearchTerm, Sort)` reemplaza a `ListarBeneficiariosQuery`; el repositorio filtra, ordena (`ApplySorting`) y pagina. La query pasa a `pageNumber`, `pageSize`, `searchTerm` y `sort` (el recorrido de la sección 5 usó los nombres anteriores). Total: 466 pruebas, 452 correctas, 0 errores, 14 omitidas. Ver [architecture.md](../architecture.md#listados-paginación-búsqueda-y-orden). |
 
 ### Criterios de aceptación
 

@@ -1,3 +1,4 @@
+using AutoMapper;
 using FluentValidation;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Interfaces;
@@ -11,7 +12,8 @@ namespace SocialManagement.Beneficiarios.Application.Features.DesactivarBenefici
 public sealed class DesactivarBeneficiarioHandler(
     IValidator<DesactivarBeneficiarioCommand> validator,
     IBeneficiarioRepository repository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IMapper mapper)
 {
     /// <returns>Los datos con el estado actualizado, o <c>null</c> si el beneficiario no existe.</returns>
     public async Task<BeneficiarioDto?> HandleAsync(DesactivarBeneficiarioCommand command, CancellationToken cancellationToken = default)
@@ -29,6 +31,6 @@ public sealed class DesactivarBeneficiarioHandler(
         beneficiario.Desactivar();
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return BeneficiarioDto.Desde(beneficiario);
+        return mapper.Map<BeneficiarioDto>(beneficiario);
     }
 }

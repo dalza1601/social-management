@@ -1,7 +1,10 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using SocialManagement.Beneficiarios.Application.Common.Pagination;
+using SocialManagement.Beneficiarios.Application.Features.ListarBeneficiarios;
 using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Domain.Entities;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 using SocialManagement.Beneficiarios.Infrastructure.Persistence;
 
 namespace SocialManagement.Beneficiarios.Infrastructure.Repositories;
@@ -22,27 +25,59 @@ internal sealed class BeneficiarioRepository(BeneficiariosDbContext context) : I
                             && beneficiario.Documento.Numero == documento.Numero,
             cancellationToken);
 
-    public async Task<(IReadOnlyList<Beneficiario> Items, int Total)> ListarAsync(
-        int pagina,
-        int tamanoPagina,
+    public async Task<PagedResponse<Beneficiario>> ListarAsync(
+        BeneficiarioQueryParameters parameters,
         CancellationToken cancellationToken = default)
     {
-        var consulta = context.Beneficiarios.AsNoTracking();
+        ArgumentNullException.ThrowIfNull(parameters);
 
-        var total = await consulta.CountAsync(cancellationToken);
+        var pageNumber = parameters.Pagination.SafePageNumber;
+        var pageSize = parameters.Pagination.SafePageSize;
+        var query = context.Beneficiarios.AsNoTracking();
 
-        // Orden total y estable (el Id desempata): las páginas no repiten ni saltan registros.
-        var items = await consulta
-            .OrderBy(beneficiario => beneficiario.Apellidos)
-            .ThenBy(beneficiario => beneficiario.Nombres)
-            .ThenBy(beneficiario => beneficiario.Id)
-            .Skip((pagina - 1) * tamanoPagina)
-            .Take(tamanoPagina)
-            .ToListAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+        {
+            // LIKE '%término%' en SQL Server (la intercalación por defecto no distingue mayúsculas).
+            var searchTerm = parameters.SearchTerm.Trim();
+            query = query.Where(beneficiario =>
+                beneficiario.Nombres.Contains(searchTerm)
+                || beneficiario.Apellidos.Contains(searchTerm)
+                || beneficiario.Documento.Numero.Contains(searchTerm));
+        }
 
-        return (items, total);
+        query = ApplySorting(query, parameters.SortField, parameters.SortDescending);
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return PagedResponse<Beneficiario>.Create(items, total, pageNumber, pageSize);
     }
 
     public async Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default) =>
         await context.Beneficiarios.AddAsync(beneficiario, cancellationToken);
+
+    /// <summary>
+    /// Orden pedido (el validador ya garantizó que el campo existe) y, al final, el Id como desempate: un orden total
+    /// y estable hace que las páginas no repitan ni salten registros.
+    /// </summary>
+    private static IQueryable<Beneficiario> ApplySorting(IQueryable<Beneficiario> query, string? field, bool descending)
+    {
+        var ordered = field switch
+        {
+            "nombres" => OrderBy(query, beneficiario => beneficiario.Nombres, descending),
+            "numerodocumento" => OrderBy(query, beneficiario => beneficiario.Documento.Numero, descending),
+            "fecharegistro" => OrderBy(query, beneficiario => beneficiario.FechaRegistroUtc, descending),
+            "estado" => OrderBy(query, beneficiario => beneficiario.Estado, descending),
+            // "apellidos" o sin orden: apellidos y luego nombres.
+            _ => descending
+                ? query.OrderByDescending(beneficiario => beneficiario.Apellidos).ThenByDescending(beneficiario => beneficiario.Nombres)
+                : query.OrderBy(beneficiario => beneficiario.Apellidos).ThenBy(beneficiario => beneficiario.Nombres),
+        };
+
+        return ordered.ThenBy(beneficiario => beneficiario.Id);
+    }
+
+    private static IOrderedQueryable<Beneficiario> OrderBy<TKey>(
+        IQueryable<Beneficiario> query,
+        Expression<Func<Beneficiario, TKey>> key,
+        bool descending) =>
+        descending ? query.OrderByDescending(key) : query.OrderBy(key);
 }

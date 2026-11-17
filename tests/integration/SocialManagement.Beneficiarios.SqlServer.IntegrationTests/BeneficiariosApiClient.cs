@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 
 namespace SocialManagement.Beneficiarios.SqlServer.IntegrationTests;
 

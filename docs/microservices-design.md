@@ -198,7 +198,7 @@ Authorization: Bearer <token>
 |---------------|----------|-----------|
 | `POST /api/v1/solicitudes` | Escritura (Administrador, Operador) | 201 + `Location`; 422 si el beneficiario no existe o está inactivo |
 | `GET /api/v1/solicitudes/{id}` | Lectura (Administrador, Operador) | 200 / 404 |
-| `GET /api/v1/solicitudes?beneficiarioId=25&pagina=1` | Lectura | 200 paginado |
+| `GET /api/v1/solicitudes?beneficiarioId=25&pageNumber=1` | Lectura | 200 paginado |
 | `PATCH /api/v1/solicitudes/{id}/aprobar` · `/rechazar` | Evaluación (Administrador) | 200 / 409 si la transición no es válida |
 
 Mismas convenciones que Beneficiarios: `BaseApiController`, `ApiResponse<T>`, `{id:int}`, FluentValidation y JWT con los

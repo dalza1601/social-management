@@ -6,9 +6,11 @@ Capa de presentación (ASP.NET Core Web API con Controllers). Depende de `Applic
 |-----------------|-------------------------------------------------------------------------------|
 | `Controllers`   | `BaseApiController`: base de todos los controllers de recursos (ruta versionada `api/v{version:apiVersion}/[controller]`, `ApiResponse<T>`, `UseCase<T>()`, `Logger`). |
 | `Endpoints`     | Funciones de Minimal APIs, registradas con `app.MapGet` en `Program.cs`: `GetVersionEndpoint` (`GET /version`). |
-| `Contracts`     | Modelos HTTP, un tipo por archivo: `ApiResponse<T>`, `ApiError`, `VersionResponse`. |
+| `Contracts`     | Modelos HTTP, un tipo por archivo, agrupados por entidad o funcionalidad: `Diagnostics/` (`VersionResponse`) y `Common/` (`ApiResponse<T>`, `ApiError`). |
 | `Middleware`    | `GlobalExceptionHandler`: excepciones → ProblemDetails + log.                  |
-| `Extensions`    | Registro de servicios de la API, pipeline HTTP y escritura JSON de health checks. |
+| `DependencyInjection` | `DependencyInjection.cs`: `AddPresentation()`: registro de la capa Api (controllers, OpenAPI, errores, AutoMapper, seguridad). |
+| `Mappings`      | Perfiles de AutoMapper de la Api: request → comando (se crea con el primer contrato de Solicitudes). |
+| `Extensions`    | Un archivo por tema que usa `DependencyInjection/DependencyInjection.cs` (versionado, documentación, seguridad), pipeline HTTP y health checks. |
 | `Configuration` | Opciones propias de la API (`ServiceInfoOptions`).                            |
 
 ## Endpoints técnicos

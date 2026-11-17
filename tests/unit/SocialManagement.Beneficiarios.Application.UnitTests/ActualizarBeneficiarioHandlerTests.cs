@@ -14,7 +14,7 @@ public sealed class ActualizarBeneficiarioHandlerTests
     private readonly ActualizarBeneficiarioHandler _handler;
 
     public ActualizarBeneficiarioHandlerTests() =>
-        _handler = new ActualizarBeneficiarioHandler(new ActualizarBeneficiarioCommandValidator(), _repository, _unitOfWork);
+        _handler = new ActualizarBeneficiarioHandler(new ActualizarBeneficiarioCommandValidator(), _repository, _unitOfWork, MapperDePrueba.Crear());
 
     [Fact]
     public async Task Actualiza_los_datos_y_confirma_los_cambios()

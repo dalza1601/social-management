@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using SocialManagement.Solicitudes.Api.Configuration;
-using SocialManagement.Solicitudes.Infrastructure.DependencyInjection;
+using InfrastructureLayer = SocialManagement.Solicitudes.Infrastructure.DependencyInjection;
 
 namespace SocialManagement.Solicitudes.Api.Extensions;
 
@@ -22,8 +22,8 @@ public static class WebApplicationExtensions
 
         // /health       -> disponibilidad básica: el proceso responde (no consulta dependencias).
         // /health/ready -> dependencias: SQL Server y RabbitMQ.
-        app.MapHealthChecks("/health", HealthCheckResponseWriter.CreateOptions(ApiServiceCollectionExtensions.LivenessTag));
-        app.MapHealthChecks("/health/ready", HealthCheckResponseWriter.CreateOptions(InfrastructureServiceCollectionExtensions.ReadinessTag));
+        app.MapHealthChecks("/health", HealthCheckResponseWriter.CreateOptions(DependencyInjection.LivenessTag));
+        app.MapHealthChecks("/health/ready", HealthCheckResponseWriter.CreateOptions(InfrastructureLayer.ReadinessTag));
 
         app.Lifetime.ApplicationStarted.Register(() =>
         {

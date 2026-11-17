@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Security;
 
 namespace SocialManagement.Beneficiarios.Api.IntegrationTests;
@@ -29,7 +29,7 @@ public sealed class AuthorizationTests(BeneficiariosApiFactory factory) : IClass
     public static TheoryData<string, string> Operaciones => new()
     {
         { "GET", $"{Ruta}/0" },
-        { "GET", $"{Ruta}?pagina=0" },
+        { "GET", $"{Ruta}?pageNumber=0" },
         { "POST", Ruta },
         { "PUT", $"{Ruta}/0" },
         { "PATCH", $"{Ruta}/0/desactivar" },
@@ -39,7 +39,7 @@ public sealed class AuthorizationTests(BeneficiariosApiFactory factory) : IClass
     public static TheoryData<string, string> OperacionesDelOperador => new()
     {
         { "GET", $"{Ruta}/0" },
-        { "GET", $"{Ruta}?pagina=0" },
+        { "GET", $"{Ruta}?pageNumber=0" },
         { "POST", Ruta },
         { "PUT", $"{Ruta}/0" },
     };
@@ -102,7 +102,7 @@ public sealed class AuthorizationTests(BeneficiariosApiFactory factory) : IClass
     {
         var token = TestTokens.Crear("usuario.sin.rol", rol is null ? [] : [rol]);
 
-        using var response = await SendAsync("GET", $"{Ruta}?pagina=0", token);
+        using var response = await SendAsync("GET", $"{Ruta}?pageNumber=0", token);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }

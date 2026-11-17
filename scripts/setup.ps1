@@ -162,6 +162,9 @@ else {
             'Aws:ServiceUrl'                               = ('http://localhost:' + (Get-EnvValue $envValues 'LOCALSTACK_PORT' '4566'))
         }
         foreach ($extra in $service.Extra.GetEnumerator()) { $secrets[$extra.Key] = $extra.Value }
+        # Licencia de AutoMapper (opcional): solo se guarda si .env la define; sin ella la API funciona y avisa en el log.
+        $autoMapperLicense = Get-EnvValue $envValues 'AUTOMAPPER_LICENSE_KEY'
+        if ($autoMapperLicense) { $secrets['AutoMapper:LicenseKey'] = $autoMapperLicense }
         $failedSecrets = 0
         foreach ($entry in $secrets.GetEnumerator()) {
             $code = Invoke-Native -FilePath 'dotnet' -Arguments @('user-secrets', 'set', $entry.Key, $entry.Value, '--project', $service.Project) -Quiet

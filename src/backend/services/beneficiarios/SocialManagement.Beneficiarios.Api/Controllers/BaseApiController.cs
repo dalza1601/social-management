@@ -1,5 +1,6 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using SocialManagement.Beneficiarios.Api.Contracts;
+using SocialManagement.Beneficiarios.Api.Contracts.Common;
 using SocialManagement.Beneficiarios.Api.Extensions;
 
 namespace SocialManagement.Beneficiarios.Api.Controllers;
@@ -13,7 +14,7 @@ namespace SocialManagement.Beneficiarios.Api.Controllers;
 /// <item><b>Formato de respuesta</b>: <see cref="ApiResponse{T}"/> en éxitos y errores. Los errores de validación (400),
 /// de dominio (422) e inesperados (500) también usan este formato (ver GlobalExceptionHandler y AddApiPresentation).</item>
 /// <item><b>Documentación OpenAPI</b> de las respuestas de error comunes.</item>
-/// <item><b>Dependencias comunes</b> sin inyección por constructor: <see cref="Logger"/>, <see cref="TraceId"/> y los casos de
+/// <item><b>Dependencias comunes</b> sin inyección por constructor: <see cref="Logger"/>, <see cref="TraceId"/>, <see cref="Mapper"/> y los casos de
 /// uso de Application con <see cref="UseCase{TUseCase}"/>.</item>
 /// </list>
 /// </summary>
@@ -47,6 +48,7 @@ public abstract class BaseApiController : ControllerBase
     public const string RouteTemplate = "api/v{version:apiVersion}/[controller]";
 
     private ILogger? _logger;
+    private IMapper? _mapper;
 
     /// <summary>Logger con la categoría del controller concreto.</summary>
     protected ILogger Logger => _logger ??= Services.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
@@ -56,6 +58,9 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>Contenedor de DI de la petición actual.</summary>
     protected IServiceProvider Services => HttpContext.RequestServices;
+
+    /// <summary>Mapeador de AutoMapper (perfiles de Mappings en Api y Application): request → comando.</summary>
+    protected IMapper Mapper => _mapper ??= Services.GetRequiredService<IMapper>();
 
     /// <summary>Obtiene un caso de uso de Application registrado en DI (p. ej. RegistrarBeneficiarioHandler).</summary>
     protected TUseCase UseCase<TUseCase>()

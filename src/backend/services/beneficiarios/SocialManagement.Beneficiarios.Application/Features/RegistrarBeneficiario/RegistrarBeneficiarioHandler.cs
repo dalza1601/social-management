@@ -1,9 +1,10 @@
+using AutoMapper;
 using FluentValidation;
 using SocialManagement.Beneficiarios.Application.DTOs;
 using SocialManagement.Beneficiarios.Application.Interfaces;
 using SocialManagement.Beneficiarios.Domain.Entities;
 using SocialManagement.Beneficiarios.Domain.Exceptions;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficiario;
 
@@ -12,14 +13,15 @@ namespace SocialManagement.Beneficiarios.Application.Features.RegistrarBeneficia
 /// Orquesta los pasos; las reglas sobre los datos viven en el dominio.
 /// </summary>
 /// <remarks>
-/// Depende solo de abstracciones (<see cref="IBeneficiarioRepository"/>, <see cref="IUnitOfWork"/> y
+/// Depende solo de abstracciones (<see cref="IBeneficiarioRepository"/>, <see cref="IUnitOfWork"/>, IMapper y
 /// <see cref="TimeProvider"/>): no sabe si los datos se guardan en SQL Server, en memoria o en una prueba.
 /// </remarks>
 public sealed class RegistrarBeneficiarioHandler(
     IValidator<RegistrarBeneficiarioCommand> validator,
     IBeneficiarioRepository repository,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IMapper mapper)
 {
     /// <exception cref="ValidationException">Los datos de entrada no son válidos (se informan todos los campos).</exception>
     /// <exception cref="BeneficiarioDuplicadoException">Ya existe un beneficiario con ese documento.</exception>
@@ -47,6 +49,6 @@ public sealed class RegistrarBeneficiarioHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         // 5. El DTO se arma DESPUÉS de guardar: el Id (IDENTITY) lo asigna la base de datos en el INSERT.
-        return BeneficiarioDto.Desde(beneficiario);
+        return mapper.Map<BeneficiarioDto>(beneficiario);
     }
 }

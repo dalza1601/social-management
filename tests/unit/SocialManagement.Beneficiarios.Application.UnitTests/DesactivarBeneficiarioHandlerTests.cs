@@ -12,7 +12,7 @@ public sealed class DesactivarBeneficiarioHandlerTests
     private readonly DesactivarBeneficiarioHandler _handler;
 
     public DesactivarBeneficiarioHandlerTests() =>
-        _handler = new DesactivarBeneficiarioHandler(new DesactivarBeneficiarioCommandValidator(), _repository, _unitOfWork);
+        _handler = new DesactivarBeneficiarioHandler(new DesactivarBeneficiarioCommandValidator(), _repository, _unitOfWork, MapperDePrueba.Crear());
 
     [Fact]
     public async Task Desactiva_al_beneficiario_sin_eliminarlo()

@@ -45,7 +45,7 @@ builder.Host.UseDefaultServiceProvider(options =>           //    Valida el cont
 builder.Services                                            // 2. Registra servicios (DI)
     .AddApplication()
     .AddInfrastructure()
-    .AddApiPresentation();
+    .AddPresentation();
 
 var app = builder.Build();                                  // 3. Construye la aplicación
 
@@ -69,9 +69,9 @@ Para que `Program.cs` sea legible, el detalle está en métodos de extensión:
 
 | Método | Archivo | Qué registra o configura |
 |--------|---------|---------------------------|
-| `AddApplication()` | `Application/DependencyInjection.cs` | Casos de uso (todavía ninguno) |
-| `AddInfrastructure()` | `Infrastructure/DependencyInjection/InfrastructureServiceCollectionExtensions.cs` | EF Core, RabbitMQ, AWS, Ollama |
-| `AddApiPresentation()` | `Api/Extensions/ApiServiceCollectionExtensions.cs` | Controllers, ProblemDetails, OpenAPI, `TimeProvider`, health checks |
+| `AddApplication()` | `Application/DependencyInjection/DependencyInjection.cs` | Casos de uso (todavía ninguno) |
+| `AddInfrastructure()` | `Infrastructure/DependencyInjection/DependencyInjection.cs` | EF Core, RabbitMQ, AWS, Ollama |
+| `AddPresentation()` | `Api/DependencyInjection/DependencyInjection.cs` | Controllers, ProblemDetails, OpenAPI, `TimeProvider`, health checks |
 | `UseApiPipeline()` | `Api/Extensions/WebApplicationExtensions.cs` | Middleware y mapeo de endpoints |
 
 ### 2.2 Controllers y Minimal APIs
@@ -154,7 +154,7 @@ flowchart LR
 Las secciones se leen con el **Options Pattern**: una clase con propiedades y `IOptions<T>` inyectado.
 
 ```csharp
-// Registro (ApiServiceCollectionExtensions.cs)
+// Registro (Api/DependencyInjection/DependencyInjection.cs)
 services.AddOptions<ServiceInfoOptions>()
     .BindConfiguration("ServiceInfo")
     .Validate(o => !string.IsNullOrWhiteSpace(o.Name), "Falta 'ServiceInfo:Name'.")
@@ -274,7 +274,7 @@ Es un endpoint simple, así que no usa un controller. Se reparte en tres archivo
 |---------|-----------------|
 | `Program.cs` | Registra la ruta con `app.MapGet` y su documentación OpenAPI |
 | `Endpoints/GetDemoStatusEndpoint.cs` | La función que atiende la petición (`Handle`) y las constantes de ruta y estado |
-| `Contracts/DemoStatusResponse.cs` | El modelo de la respuesta JSON |
+| `Contracts/Diagnostics/DemoStatusResponse.cs` | El modelo de la respuesta JSON |
 
 ```csharp
 // Program.cs
@@ -392,7 +392,7 @@ version (versión del ensamblado), timestampUtc y status.
 
 Restricciones:
 - Registra la ruta con app.MapGet en Program.cs; la función manejadora va en
-  Endpoints/GetDemoStatusEndpoint.cs y el record de respuesta en Contracts/DemoStatusResponse.cs.
+  Endpoints/GetDemoStatusEndpoint.cs y el record de respuesta en Contracts/Diagnostics/DemoStatusResponse.cs.
 - Obtén la hora con TimeProvider inyectado; no uses DateTime.UtcNow.
 - Devuelve 200 con status "Running"; si IHostApplicationLifetime.ApplicationStopping
   está cancelado, devuelve 503 con status "Stopping". Usa TypedResults y Results<T1, T2>.
@@ -408,7 +408,7 @@ contenedor de DI.
 
 ```text
 Actúa como revisor de código senior de ASP.NET Core. Revisa el siguiente endpoint
-(pego Program.cs, Endpoints/GetDemoStatusEndpoint.cs y ApiServiceCollectionExtensions.cs).
+(pego Program.cs, Endpoints/GetDemoStatusEndpoint.cs y Api/DependencyInjection/DependencyInjection.cs).
 
 Evalúa y responde en una tabla con columnas Hallazgo | Severidad | Línea | Corrección propuesta:
 1. ¿El endpoint tiene lógica que debería estar en otra capa?
@@ -427,7 +427,7 @@ Contexto: en SocialManagement.Beneficiarios.Api, el endpoint GET /api/demo/statu
 DemoController, y el record DemoStatusResponse está declarado en el mismo archivo del controller.
 
 Tarea: refactoriza a Minimal API y separa los componentes:
-- Contracts/DemoStatusResponse.cs: el record de respuesta (un tipo por archivo).
+- Contracts/Diagnostics/DemoStatusResponse.cs: el record de respuesta (un tipo por archivo).
 - Endpoints/GetDemoStatusEndpoint.cs: clase estática con la función Handle.
 - Program.cs: app.MapGet con la misma ruta y los mismos metadatos OpenAPI.
 - Elimina DemoController.cs.
@@ -465,11 +465,11 @@ Salida: un diff por archivo y la lista de comandos para verificar (dotnet build 
 |---------|--------|
 | `Api/Program.cs` | Registra el Minimal API con `app.MapGet` y sus metadatos OpenAPI |
 | `Api/Endpoints/GetDemoStatusEndpoint.cs` | **Nuevo**: función del endpoint `GET /api/demo/status` |
-| `Api/Contracts/DemoStatusResponse.cs` | **Nuevo**: modelo de la respuesta |
+| `Api/Contracts/Diagnostics/DemoStatusResponse.cs` | **Nuevo**: modelo de la respuesta |
 | `Api/Configuration/ServiceVersion.cs` | **Nuevo**: versión del servicio en un solo lugar |
 | `Api/Endpoints/GetVersionEndpoint.cs` | `GET /version` como Minimal API (antes `VersionController`); usa `ServiceVersion` y `TimeProvider` |
 | `Api/Controllers/BaseApiController.cs` | **Nuevo**: base de todos los controllers (ruta, `ApiResponse<T>`, dependencias comunes) |
-| `Api/Extensions/ApiServiceCollectionExtensions.cs` | Registra `TimeProvider.System` |
+| `Api/DependencyInjection/DependencyInjection.cs` (antes `Extensions/ApiServiceCollectionExtensions.cs`) | Registra `TimeProvider.System` |
 | `Api/SocialManagement.Beneficiarios.Api.http` | **Nuevo**: peticiones de ejemplo |
 | `tests/unit/SocialManagement.Beneficiarios.Api.UnitTests/` | **Nuevo**: pruebas unitarias del endpoint |
 | `tests/integration/.../DemoStatusEndpointTests.cs` | **Nuevo**: pruebas del endpoint y de OpenAPI |

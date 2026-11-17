@@ -3,7 +3,7 @@ using SocialManagement.Beneficiarios.Application.Features.ConsultarBeneficiario;
 using SocialManagement.Beneficiarios.Application.Validators;
 using SocialManagement.Beneficiarios.Domain.Entities;
 using SocialManagement.Beneficiarios.Domain.Enums;
-using SocialManagement.Beneficiarios.Domain.ValueObjects;
+using SocialManagement.Beneficiarios.Domain.ValueObjects.Beneficiarios;
 
 namespace SocialManagement.Beneficiarios.Application.UnitTests;
 
@@ -14,7 +14,7 @@ public sealed class ConsultarBeneficiarioHandlerTests
     private readonly ConsultarBeneficiarioHandler _handler;
 
     public ConsultarBeneficiarioHandlerTests() =>
-        _handler = new ConsultarBeneficiarioHandler(new ConsultarBeneficiarioQueryValidator(), _repository);
+        _handler = new ConsultarBeneficiarioHandler(new ConsultarBeneficiarioQueryValidator(), _repository, MapperDePrueba.Crear());
 
     [Theory]
     [InlineData(0)]
