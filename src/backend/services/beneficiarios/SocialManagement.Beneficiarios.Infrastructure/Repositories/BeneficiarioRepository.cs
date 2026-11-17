@@ -48,7 +48,7 @@ internal sealed class BeneficiarioRepository(BeneficiariosDbContext context) : I
         query = ApplySorting(query, parameters.SortField, parameters.SortDescending);
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
-        return PagedResponse<Beneficiario>.Create(items, total, pageNumber, pageSize);
+        return PagedResponse<Beneficiario>.Create(items, pageNumber, pageSize, total);
     }
 
     public async Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default) =>

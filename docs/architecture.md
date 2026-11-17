@@ -261,13 +261,13 @@ Los Minimal APIs técnicos (`/version`, `/health`, `/api/demo/status`) no se ver
 |------|-------|-----------------|
 | Api | `Contracts/Beneficiarios/ListarBeneficiariosRequest` | Parámetros planos de la query (`pageNumber`, `pageSize`, `searchTerm`, `sort`), documentados en OpenAPI |
 | Api | `Mappings/BeneficiarioContractsProfile` | Request plano → `BeneficiarioQueryParameters` (agrupa la página en un `PaginationRequest`) |
-| Application | `Common/Pagination/PaginationRequest` | Página pedida; `SafePageNumber` / `SafePageSize` la acotan (mínimo 1, máximo 100) |
+| Application | `Common/Pagination/PaginationRequest(PageNumber = 1, PageSize = 20)` | Lo que **recibe** el paginado. `SafePageNumber` (mínimo 1) y `SafePageSize` (`switch`: menor que 1 → 20, mayor que 100 → 100) |
 | Application | `Features/ListarBeneficiarios/BeneficiarioQueryParameters` | `(PaginationRequest Pagination, string? SearchTerm, string? Sort)` |
 | Application | `Validators/BeneficiarioQueryParametersValidator` | 400 si la página, el tamaño, la búsqueda (máx. 100) o el campo de orden no son válidos |
 | Application | `ListarBeneficiariosHandler` | Valida, pide la página al repositorio y la convierte a `PagedResponse<BeneficiarioDto>` (AutoMapper) |
 | Application | `Interfaces/IBeneficiarioRepository.ListarAsync(BeneficiarioQueryParameters)` | Puerto: devuelve `PagedResponse<Beneficiario>` |
 | Infrastructure | `Repositories/BeneficiarioRepository` | `AsNoTracking`, filtro `Contains` (LIKE) en nombres, apellidos y documento, `ApplySorting`, `CountAsync`, `Skip`/`Take` y `PagedResponse.Create` |
-| Application | `Common/Pagination/PagedResponse<T>` | `items`, `totalCount`, `pageNumber`, `pageSize`, `totalPages`, `hasPreviousPage`, `hasNextPage` |
+| Application | `Common/Pagination/PagedResponse<T>(Items, PageNumber, PageSize, TotalCount, TotalPages, HasPreviousPage, HasNextPage)` | Lo que **retorna** el paginado. `Create(items, pageNumber, pageSize, totalCount)` calcula las páginas y la navegación |
 
 - **Orden:** `apellidos` (por defecto, luego nombres), `nombres`, `numeroDocumento`, `fechaRegistro`, `estado`; con `-` delante,
   descendente. El `Id` siempre desempata al final, así las páginas no repiten ni saltan registros.

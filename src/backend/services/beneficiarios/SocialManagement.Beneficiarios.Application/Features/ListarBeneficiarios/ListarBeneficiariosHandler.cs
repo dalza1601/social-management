@@ -26,8 +26,8 @@ public sealed class ListarBeneficiariosHandler(
 
         return PagedResponse<BeneficiarioDto>.Create(
             mapper.Map<List<BeneficiarioDto>>(page.Items),
-            page.TotalCount,
             page.PageNumber,
-            page.PageSize);
+            page.PageSize,
+            page.TotalCount);
     }
 }

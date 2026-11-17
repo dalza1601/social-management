@@ -48,7 +48,7 @@ public sealed class BeneficiariosBusquedaYOrdenTests(SqlServerBeneficiariosApiFa
 
         Assert.Equal(3, pagina.TotalCount);
         Assert.Equal(2, pagina.TotalPages);
-        Assert.Equal(2, pagina.Items.Count);
+        Assert.Equal(2, pagina.Items.Count());
         Assert.All(pagina.Items, b => Assert.Equal(apellido, b.Apellidos));
     }
 

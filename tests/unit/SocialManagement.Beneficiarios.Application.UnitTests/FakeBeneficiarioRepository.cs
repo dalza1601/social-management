@@ -49,7 +49,7 @@ internal sealed class FakeBeneficiarioRepository : IBeneficiarioRepository
             .ToList();
 
         var items = filtrados.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
-        return Task.FromResult(PagedResponse<Beneficiario>.Create(items, filtrados.Count, pageNumber, pageSize));
+        return Task.FromResult(PagedResponse<Beneficiario>.Create(items, pageNumber, pageSize, filtrados.Count));
     }
 
     public Task AgregarAsync(Beneficiario beneficiario, CancellationToken cancellationToken = default)
